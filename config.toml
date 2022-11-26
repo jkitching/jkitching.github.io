@@ -1,0 +1,46 @@
+baseURL = "https://joelkitching.com/"
+title = "Joel Kitching"
+theme = "etch"
+languageCode = "en-US"
+enableInlineShortcodes = true
+pygmentsCodeFences = true
+pygmentsUseClasses = true
+
+[params]
+  description = "Joel Kitching"
+  copyright = "Copyright © 2022 Joel Isaac Stewart Davies-Kitching"
+  dark = "auto"
+  highlight = true
+
+[menu]
+  [[menu.main]]
+    name = "posts"
+    url = "/"
+    weight = 10
+
+  [[menu.main]]
+    name = "about"
+    url = "/about/"
+    weight = 20
+
+  [[menu.main]]
+    name = "twitter"
+    url = "https://twitter.com/joelkitching"
+    weight = 30
+
+  [[menu.main]]
+    name = "github"
+    url = "https://github.com/jkitching"
+    weight = 40
+
+  [[menu.main]]
+    name = "linkedin"
+    url = "https://www.linkedin.com/in/joelkitching"
+    weight = 50
+
+[permalinks]
+  posts = "/:title/"
+
+[markup.goldmark.renderer]
+  # Allows HTML in Markdown
+  unsafe = true
