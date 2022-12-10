@@ -184,3 +184,5 @@ Note that we have to convert the function passed to `BrightnessProxy` to the for
 # Clean up, document, and upload changes
 
 This is the most important part.  I extensively document the problems encountered with `BrightnessProxy`, author a commit message explaining the rationale behind using monkey patching, and create a [GitHub pull request](https://github.com/F-i-f/soft-brightness/pull/59).  And we're done!
+
+There is one point that I conveniently glossed over: testing the GNOME extension in previous versions of GNOME... how did I do that?  Let's look at GNOME containerization in the next post, {{< xref "x11docker-gnome-containers" >}}.
