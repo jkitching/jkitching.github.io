@@ -81,8 +81,8 @@ Here's a list of Fedora versions with corresponding GNOME versions (as of Decemb
 | Fedora version | GNOME version |
 |----|--------|--|--|
 | 38 | 43.1   | § |
-| 36 | 42.6   |
-| 35 | 41.9   |
+| 36 | 42.4   |
+| 35 | 41.6   |
 | 34 | 40.9   |
 | 33 | 3.38.5 |
 | 32 | 3.36.9 |
