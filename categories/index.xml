@@ -1,65 +1,21 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Categories on Joel Kitching</title><link>https://joelkitching.com/categories/</link><description>Recent content in Categories on Joel Kitching</description><generator>Hugo -- gohugo.io</generator><language>en-US</language><atom:link href="https://joelkitching.com/categories/index.xml" rel="self" type="application/rss+xml"/><item><title>Developing GNOME extensions with x11docker containers</title><link>https://joelkitching.com/developing-gnome-extensions-with-x11docker-containers/</link><pubDate>Sat, 26 Nov 2022 00:00:00 +0000</pubDate><guid>https://joelkitching.com/developing-gnome-extensions-with-x11docker-containers/</guid><description>&lt;p>I used to be an exclusive user of tiling window managers, namely: xmonad. When I converted over to the GNOME world, I tried all of the window tiling extensions and settled on the excellent &lt;a href="https://github.com/paperwm/PaperWM">PaperWM&lt;/a>. But PaperWM, as with most GNOME extensions, struggled to keep up with the rapid pace of GNOME releases, and I was stuck on vanilla GNOME for some time.&lt;/p>
-&lt;p>Recently, Arch pushed the GNOME 43 release, and, surprise! I lost another extension that I&amp;rsquo;ve come to love: Philippe Troin&amp;rsquo;s &lt;a href="https://github.com/F-i-f/soft-brightness">Soft Brightness&lt;/a>. This extension takes the existing brightness control in GNOME, and extends the darkest setting past the limits of the physical display by adjusting gamma settings. (In other words, it prevents you from going blind when working in a dark room.) There was an &lt;a href="https://github.com/F-i-f/soft-brightness/issues/58">open issue for GNOME 43 support&lt;/a> on the Soft Brightness GitHub page, but before I wrote this post, no progress had yet been made. Rather than downgrading GNOME and waiting patiently, I decided to take matters into my own hands.&lt;/p>
-&lt;p>
-&lt;img src="soft-brightness-settings.png" alt="Settings dialog of GNOME Soft Brightness extension">
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Categories on Joel Kitching</title><link>https://joelkitching.com/categories/</link><description>Recent content in Categories on Joel Kitching</description><generator>Hugo -- gohugo.io</generator><language>en-US</language><atom:link href="https://joelkitching.com/categories/index.xml" rel="self" type="application/rss+xml"/><item><title>GNOME development with x11docker containers</title><link>https://joelkitching.com/gnome-development-with-x11docker-containers/</link><pubDate>Mon, 05 Dec 2022 00:00:00 +0000</pubDate><guid>https://joelkitching.com/gnome-development-with-x11docker-containers/</guid><description>&lt;p>
+&lt;img src="gnome-containers.png" alt="Running multiple containers of different GNOME versions">
 &lt;/p>
-&lt;h1 id="update-metadatajson-and-hope-for-the-best">Update &lt;code>metadata.json&lt;/code> and hope for the best&lt;/h1>
-&lt;p>First of all, let&amp;rsquo;s clone the Soft Brightness repository, and update &lt;code>metadata.json&lt;/code> to claim support for GNOME 43. The documentation shows the incantation to build and install the extension: &lt;code>meson build &amp;amp;&amp;amp; ninja -C build install&lt;/code>. Great! Let&amp;rsquo;s re-enable the extension and see what happens.&lt;/p>
-&lt;p>
-&lt;img src="extensions-error.png" alt="Soft Brightness extension encounters an error when enabled">
-&lt;/p>
-&lt;p>Okay&amp;hellip; so that didn&amp;rsquo;t work very well. There&amp;rsquo;s something wrong with AggregateMenu. Coincidentally, the guide for &lt;a href="https://gjs.guide/extensions/upgrading/gnome-shell-43.html#quick-settings">porting extensions to GNOME 43&lt;/a> mentions that AggregateMenu has been replaced with QuickSettings. No problem! We just need to search-and-replace a few strings, and the extension is ready for action. But&amp;hellip; seems like there&amp;rsquo;s no way to &amp;ldquo;reload&amp;rdquo; the extension in a running GNOME session.&lt;/p>
-&lt;h1 id="set-up-the-development-environment">Set up the development environment&lt;/h1>
-&lt;p>GNOME might not allow reloading extensions dynamically, but there is a simple workaround: reload &lt;code>gnome-shell&lt;/code> instead. For all of you X11 users, go ahead and press Alt+F2 right now, type the &lt;code>r&lt;/code> command, and hit &amp;lt;Enter&amp;gt;. Tah-dah! For all of you Wayland users&amp;hellip; I feel your pain.&lt;/p>
-&lt;p>When running in Wayland, &lt;code>gnome-shell&lt;/code> also takes on the equivalent role of an X server, drawing UI elements to the display. Thus, reloading &lt;code>gnome-shell&lt;/code> in Wayland effectively brings down the entire session along with all of your running applications.&lt;/p>
-&lt;p>
-&lt;img src="run-command.png" alt="GNOME Run Command dialog">
-&lt;/p>
-&lt;p>Apparently it&amp;rsquo;s pretty easy to run a nested &lt;code>gnome-shell&lt;/code> in Wayland, but it seems to have a lot of systemd-related issues. For example, opening up most applications from the nested window results in them being opened in&amp;hellip; the parent &lt;code>gnome-shell&lt;/code>. Huh? Also, there is no brightness control in the nested window, which is pretty important if we are to get Soft Brightness working. So&amp;hellip; until we figure out how to get containers involved, I&amp;rsquo;m sad to say that for GNOME extension development, the easiest route is to temporarily switch over to an X11 session.&lt;/p>
-&lt;p>Once there, we can get our development workflow going:&lt;/p>
-&lt;ol>
-&lt;li>Make changes to the extension source code&lt;/li>
-&lt;li>&lt;code>ninja -C build install&lt;/code>&lt;/li>
-&lt;li>Alt+F2, &lt;code>r&lt;/code> &amp;lt;Enter&amp;gt;&lt;/li>
-&lt;li>Close and re-open &lt;code>gnome-extensions-app&lt;/code>&lt;/li>
-&lt;li>Attempt to enable extension&lt;/li>
-&lt;/ol>
-&lt;p>
-&lt;img src="dev-workflow.png" alt="GNOME development workflow screenshot">
-&lt;/p>
-&lt;p>Or for those who enjoy stringing commands together and avoiding tinkering with the UI:&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">$ gnome-extensions disable soft-brightness@fifi.org &lt;span class="o">&amp;amp;&amp;amp;&lt;/span> &lt;span class="se">\
-&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="se">&lt;/span> ninja -C build install &lt;span class="o">&amp;amp;&amp;amp;&lt;/span> &lt;span class="se">\
-&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="se">&lt;/span> killall -HUP gnome-shell &lt;span class="o">&amp;amp;&amp;amp;&lt;/span> &lt;span class="se">\
-&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="se">&lt;/span> sleep &lt;span class="m">3&lt;/span> &lt;span class="o">&amp;amp;&amp;amp;&lt;/span> &lt;span class="se">\
-&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="se">&lt;/span> gnome-extensions &lt;span class="nb">enable&lt;/span> soft-brightness@fifi.org
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Sometimes the one-line error provided by &lt;code>gnome-extensions-app&lt;/code> is enough to track down the latest error. But we can get more information (a full stack trace) by watching &lt;code>gnome-shell&lt;/code> logs while reloading extensions. On a systemd-based distribution, that amounts to running &lt;code>journalctl -f _COMM=gnome-shell&lt;/code>.&lt;/p>
-&lt;h1 id="validate-a-solution-with-looking-glass">Validate a solution with Looking Glass&lt;/h1>
-&lt;p>I quickly discovered that &lt;code>s/AggregateMenu/QuickSettings/g&lt;/code> wasn&amp;rsquo;t going to cut it. My heart yearned for Chrome&amp;rsquo;s Developer Tools, which lets you click a UI element to inspect its properties and position in the DOM. And then the heavenly words appeared, glowing softly in my Google search: &lt;a href="https://wiki.gnome.org/Projects/GnomeShell/LookingGlass">Looking Glass&lt;/a>. Although nowhere near as advanced as Developer Tools, it allows us to inspect a running instance of &lt;code>gnome-shell&lt;/code>, and interactively make modifications.&lt;/p>
-&lt;p>Looking Glass is accessible via Alt+F2 and then &lt;code>lg&lt;/code>. Honestly, it&amp;rsquo;s somewhat frustrating to use, since it blocks interaction with the UI until closed with &amp;lt;Esc&amp;gt;. But for our purposes, it should be more than sufficient.&lt;/p>
-&lt;p>
-&lt;img src="looking-glass.png" alt="Looking Glass dialog">
-&lt;/p>
-&lt;p>To familiarize ourselves with QuickSettings, let&amp;rsquo;s see if we can remove the brightness indicator. In order to figure out the correct set of instructions, we refer to (1) existing Soft Brightness code, (2) the commit used to convert the brightness indicator over to QuickSettings (&lt;a href="https://gitlab.gnome.org/GNOME/gnome-shell/-/commit/7bbd59838a6cfe14b189fa7bd8e743fb0cac9bc3">status/brightness: Port to quick settings&lt;/a>), and (3) an extension for customizing QuickSettings (&lt;a href="https://github.com/qwreey75/quick-settings-tweaks/blob/e7eab279bbe2cfaeb59a7068808166ac7c5c046d/features/dndQuickToggle.js">Quick Settings Tweaker&lt;/a>). We lather liberally with trial and error, and come out with this Javascript:&lt;/p>
-&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-javascript" data-lang="javascript">&lt;span class="line">&lt;span class="cl">&lt;span class="nx">QS&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="nx">imports&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">ui&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">main&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">panel&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">statusArea&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">quickSettings&lt;/span>&lt;span class="p">;&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nx">b&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="nx">QS&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">_settings&lt;/span>&lt;span class="p">;&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nx">bi&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="nx">b&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">quickSettingsItems&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="p">];&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nx">bi&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">_proxy&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">run_dispose&lt;/span>&lt;span class="p">();&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nx">bi&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">get_parent&lt;/span>&lt;span class="p">().&lt;/span>&lt;span class="nx">remove_child&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">bi&lt;/span>&lt;span class="p">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nx">b&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">get_parent&lt;/span>&lt;span class="p">().&lt;/span>&lt;span class="nx">remove_child&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">b&lt;/span>&lt;span class="p">);&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nx">b&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">destroy&lt;/span>&lt;span class="p">();&lt;/span>
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>
-&lt;img src="quick-settings-no-brightness.png" alt="QuickSettings without brightness indicator">
-&lt;/p>
-&lt;p>And&amp;hellip; it&amp;rsquo;s gone! Well, that&amp;rsquo;s rather satisfying, but slightly awkward. Let&amp;rsquo;s reload &lt;code>gnome-shell&lt;/code> to get it back. (Again, sorry Wayland users!)&lt;/p>
-&lt;p>Fast-forward through some research, coding, and more trial and error. In the end, I decided to go with a monkey-patching approach, keeping the existing brightness indicator in tact, but modifying its behaviour while the Soft Brightness extension is enabled. For a more in-depth explanation, check out the &lt;a href="https://github.com/F-i-f/soft-brightness/pull/59">GitHub pull request&lt;/a>. But how can we test this approach on prior versions of GNOME? And perhaps, simplify the development process in general?&lt;/p>
+&lt;p>In &lt;a href="https://joelkitching.com/a-brief-foray-into-gnome-extension-development/">A brief foray into GNOME extension development&lt;/a>, we looked at the general process of updating a GNOME extension to work on a newer version of GNOME.&lt;/p>
+&lt;p>The most obvious development environment for working on GNOME extensions is an active GNOME session. But I encountered numerous pain points with this setup:&lt;/p>
+&lt;ul>
+&lt;li>&lt;strong>Reloading extensions:&lt;/strong> This is possible in X by reloading &lt;code>gnome-shell&lt;/code> with Alt+F2 and &lt;code>r&lt;/code>, but impossible when running in Wayland.&lt;/li>
+&lt;li>&lt;strong>Looking Glass usage:&lt;/strong> Looking Glass (accessible via Alt+F2 and &lt;code>lg&lt;/code>) is the Chrome Developer Tools of GNOME. But while open, it blocks interaction with the UI, which can be quite inconvenient. We may also want to experiment with some non-reversible changes to the GNOME DOM, after which a restart is needed.&lt;/li>
+&lt;li>&lt;strong>Testing different versions:&lt;/strong> New versions of GNOME are released every six months. There are still plenty of folks using old versions of GNOME. Short of booting up a VM, how do we ensure our extension is compatible with previous GNOME versions?&lt;/li>
+&lt;/ul>
+&lt;p>Today, we will learn how to run a slimmed-down GNOME environment of any arbitrary version within a container.&lt;/p>
 &lt;h1 id="enter-the-star-x11docker">Enter the star: x11docker&lt;/h1>
 &lt;p>&lt;a href="https://github.com/mviereck/x11docker">x11docker&lt;/a> is a fairly mature project, designed to &amp;ldquo;run GUI applications in Docker or podman containers&amp;rdquo;. It looks like the focus of the project is on sandboxing and security, but turns out to work remarkably well for our own development and testing purposes, without needing to bring up a full virtual machine.&lt;/p>
 &lt;p>
 &lt;img src="x11docker-xephyr.png" alt="x11docker running with xephyr">
 &lt;/p>
 &lt;p>x11docker can be used to run either a single application, which is then seamlessly integrated into your current window manager, or a full desktop environment, which is what we will be using. The project provides some pre-built Docker images such as &lt;code>x11docker/gnome&lt;/code> to get started, but we will need to build our own since we have specific requirements of the GNOME version being used.&lt;/p>
-&lt;h1 id="x11docker-custom-gnome-dockerfile">x11docker custom GNOME Dockerfile&lt;/h1>
+&lt;h1 id="x11docker-gnome-dockerfile">x11docker GNOME Dockerfile&lt;/h1>
 &lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-docker" data-lang="docker">&lt;span class="line">&lt;span class="cl">&lt;span class="k">FROM&lt;/span>&lt;span class="s"> fedora:36&lt;/span>&lt;span class="err">
 &lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="k">RUN&lt;/span> dnf -y update &lt;span class="o">&amp;amp;&amp;amp;&lt;/span> &lt;span class="se">\
 &lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="se">&lt;/span> dnf -y install &lt;span class="se">\
@@ -83,47 +39,119 @@
 &lt;li>&lt;code>@base-x&lt;/code> provides minimal X11 support. &lt;code>gnome-session&lt;/code> and &lt;code>gnome-shell&lt;/code> are added, along with Terminal, Gnome Extensions App, and Nautilus.&lt;/li>
 &lt;li>Mesa drivers are installed in case you&amp;rsquo;d like to use the &lt;code>--gpu&lt;/code> flag with x11docker.&lt;/li>
 &lt;li>&lt;code>gnome-tour&lt;/code> is removed because it wants to take you on a tour every time the session starts. No more tours, please!&lt;/li>
-&lt;li>The last line starts up GNOME. We use &lt;code>gnome-session&lt;/code> instead of &lt;code>gnome-shell&lt;/code>, since &lt;code>gnome-session&lt;/code> provides dbus support needed for making screen brightness adjustments.&lt;/li>
+&lt;li>The last line starts up GNOME. We use &lt;code>gnome-session&lt;/code> instead of &lt;code>gnome-shell&lt;/code>, since &lt;code>gnome-session&lt;/code> starts up numerous components on which our extension may depend.&lt;/li>
 &lt;/ul>
-&lt;p>Here&amp;rsquo;s a list of Fedora versions with corresponding GNOME versions (as of November 26, 2022) that work without any special modification of this Dockerfile aside from changing the first line:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-ini" data-lang="ini">&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># These components are started up with gnome-session.&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Source: /usr/share/gnome-session/sessions/gnome.session&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">org.gnome.Shell&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">org.gnome.SettingsDaemon.A11ySettings&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">org.gnome.SettingsDaemon.Color&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">org.gnome.SettingsDaemon.Datetime&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">org.gnome.SettingsDaemon.Housekeeping&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">org.gnome.SettingsDaemon.Keyboard&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">org.gnome.SettingsDaemon.MediaKeys&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">org.gnome.SettingsDaemon.Power&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">org.gnome.SettingsDaemon.PrintNotifications&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">org.gnome.SettingsDaemon.Rfkill&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">org.gnome.SettingsDaemon.ScreensaverProxy&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">org.gnome.SettingsDaemon.Sharing&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">org.gnome.SettingsDaemon.Smartcard&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">org.gnome.SettingsDaemon.Sound&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">org.gnome.SettingsDaemon.UsbProtection&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">org.gnome.SettingsDaemon.Wacom&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="na">org.gnome.SettingsDaemon.XSettings&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Here&amp;rsquo;s a list of Fedora versions with corresponding GNOME versions (as of December 5, 2022), along with any modifications required to the base Dockerfile shown above:&lt;/p>
 &lt;table>
 &lt;thead>
 &lt;tr>
 &lt;th>Fedora version&lt;/th>
 &lt;th>GNOME version&lt;/th>
+&lt;th>&lt;/th>
+&lt;th>&lt;/th>
 &lt;/tr>
 &lt;/thead>
 &lt;tbody>
 &lt;tr>
 &lt;td>38&lt;/td>
 &lt;td>43.1&lt;/td>
-&lt;/tr>
-&lt;tr>
-&lt;td>37&lt;/td>
-&lt;td>43.1&lt;/td>
+&lt;td>§&lt;/td>
+&lt;td>&lt;/td>
 &lt;/tr>
 &lt;tr>
 &lt;td>36&lt;/td>
 &lt;td>42.6&lt;/td>
+&lt;td>&lt;/td>
+&lt;td>&lt;/td>
 &lt;/tr>
 &lt;tr>
 &lt;td>35&lt;/td>
 &lt;td>41.9&lt;/td>
+&lt;td>&lt;/td>
+&lt;td>&lt;/td>
 &lt;/tr>
 &lt;tr>
 &lt;td>34&lt;/td>
 &lt;td>40.9&lt;/td>
+&lt;td>&lt;/td>
+&lt;td>&lt;/td>
 &lt;/tr>
 &lt;tr>
 &lt;td>33&lt;/td>
 &lt;td>3.38.5&lt;/td>
+&lt;td>&lt;/td>
+&lt;td>&lt;/td>
 &lt;/tr>
 &lt;tr>
 &lt;td>32&lt;/td>
 &lt;td>3.36.9&lt;/td>
+&lt;td>&lt;/td>
+&lt;td>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>31&lt;/td>
+&lt;td>3.34.8&lt;/td>
+&lt;td>Δ&lt;/td>
+&lt;td>†&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>30&lt;/td>
+&lt;td>3.32.2&lt;/td>
+&lt;td>Δ&lt;/td>
+&lt;td>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>29&lt;/td>
+&lt;td>3.30.2&lt;/td>
+&lt;td>Δ&lt;/td>
+&lt;td>‡&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>28&lt;/td>
+&lt;td>3.28.2&lt;/td>
+&lt;td>Δ&lt;/td>
+&lt;td>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>27&lt;/td>
+&lt;td>3.26.2&lt;/td>
+&lt;td>Δ&lt;/td>
+&lt;td>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>26&lt;/td>
+&lt;td>3.24.2&lt;/td>
+&lt;td>Δ&lt;/td>
+&lt;td>&lt;/td>
 &lt;/tr>
 &lt;/tbody>
 &lt;/table>
+&lt;ul>
+&lt;li>§ Both Fedora 37 and 38 run GNOME 43, so I just used the newest of the two.&lt;/li>
+&lt;li>Δ Predates &lt;code>gnome-extensions-app&lt;/code>, so don&amp;rsquo;t install this package. The binary &lt;code>gnome-shell-extension-prefs&lt;/code> is bundled with &lt;code>gnome-shell&lt;/code> instead.&lt;/li>
+&lt;li>† &lt;code>systemd-login&lt;/code> refuses to start without a patch to &lt;code>systemd-login.service&lt;/code>.&lt;/li>
+&lt;li>‡ Requires a polkit patch to stop requesting authentication to create a managed color device on start.&lt;/li>
+&lt;/ul>
+&lt;p>&lt;strong>What about versions of GNOME prior to 3.24.2?&lt;/strong> In short, x11docker was refusing to boot GNOME on Fedora 25, and I figured the need to support pre-2017 setups is quite low. If you can get it working, please let me know!&lt;/p>
 &lt;h1 id="x11docker-command-line-options">x11docker command-line options&lt;/h1>
 &lt;p>The actual invocation of &lt;code>x11docker&lt;/code> is slightly more involved, and may need some customization depending on your goals:&lt;/p>
 &lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">x11docker &lt;span class="se">\
@@ -137,7 +165,7 @@
 &lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="se">&lt;/span> --dbus &lt;span class="se">\
 &lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="se">&lt;/span> --network&lt;span class="o">=&lt;/span>host &lt;span class="se">\
 &lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="se">&lt;/span> --share&lt;span class="o">=&lt;/span>/run/udev/control &lt;span class="se">\
-&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="se">&lt;/span> --share&lt;span class="o">=&lt;/span>/sys/class/backlight/intel_backlight &lt;span class="se">\
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="se">&lt;/span> --share&lt;span class="o">=&lt;/span>/sys/class/some/device &lt;span class="se">\
 &lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="se">&lt;/span> --share&lt;span class="o">=&lt;/span>&lt;span class="nv">$HOME&lt;/span>/.local/share/gnome-shell/extensions &lt;span class="se">\
 &lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="se">&lt;/span> --runasuser&lt;span class="o">=&lt;/span>&lt;span class="s1">&amp;#39;ln -s /home.host/.local/share/gnome-shell/extensions ~/.local/share/gnome-shell&amp;#39;&lt;/span> &lt;span class="se">\
 &lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="se">&lt;/span> --runasuser&lt;span class="o">=&lt;/span>&lt;span class="s1">&amp;#39;gsettings set org.gnome.desktop.interface scaling-factor 2&amp;#39;&lt;/span> &lt;span class="se">\
@@ -156,44 +184,200 @@
 &lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl"> --xephyr &lt;span class="se">\
 &lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="se">&lt;/span> --desktop &lt;span class="se">\
 &lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="se">&lt;/span> --size&lt;span class="o">=&lt;/span>1600x1200 &lt;span class="se">\
-&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Use the Xephyr client for remotely connecting to the X session and showing it in a nested window. &lt;code>--xpra&lt;/code> and &lt;code>--weston-xwayland&lt;/code> also work reasonably well, and even allow dynamic resizing of the desktop. But &lt;code>--xephyr&lt;/code> is the only one that allows using a key combination (Ctrl+Shift) to grab the keyboard/mouse, which can be quite useful to avoid shortcuts getting intercepted by the host GNOME session. There are also a bunch of other Wayland modes you can play with. Check out &lt;a href="https://github.com/mviereck/x11docker/wiki/X-server-and-Wayland-Options">x11docker documentation&lt;/a> and find what works best with your setup.&lt;/p>
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Use the Xephyr X server, which runs in a nested window, and waits for a connection from &lt;code>gnome-shell&lt;/code>. &lt;code>--xpra&lt;/code> and &lt;code>--weston-xwayland&lt;/code> also work reasonably well, and even allow dynamic resizing of the desktop. But &lt;code>--xephyr&lt;/code> is the only option that allows using a key combination (Ctrl+Shift) to grab the keyboard/mouse, which can be quite useful to avoid shortcuts getting intercepted by the host GNOME session. There are also a bunch of other Wayland modes you can play with. Check out &lt;a href="https://github.com/mviereck/x11docker/wiki/X-server-and-Wayland-Options">x11docker documentation&lt;/a> and find what works best with your setup.&lt;/p>
 &lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl"> --sudouser &lt;span class="se">\
 &lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="se">&lt;/span> --clipboard &lt;span class="se">\
-&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Allow becoming the root user, and enable clipboard for copying text to and from the container.&lt;/p>
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Allow becoming the root user (the password is &lt;code>x11docker&lt;/code>), and enable clipboard for copying text to and from the container.&lt;/p>
 &lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl"> --init&lt;span class="o">=&lt;/span>systemd &lt;span class="se">\
 &lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="se">&lt;/span> --dbus &lt;span class="se">\
 &lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>GNOME is heavily dependent on dbus. It also needs an initialization system to run properly. Use systemd since it is most widely supported.&lt;/p>
 &lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl"> --network&lt;span class="o">=&lt;/span>host &lt;span class="se">\
 &lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="se">&lt;/span> --share&lt;span class="o">=&lt;/span>/run/udev/control &lt;span class="se">\
-&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="se">&lt;/span> --share&lt;span class="o">=&lt;/span>/sys/class/backlight/intel_backlight &lt;span class="se">\
-&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>The first two lines are necessary to get udev events sent into the container. In our case, that means GNOME knowing when brightness of the screen backlight has changed. This one trumped me for a really long time, until I finally ran across this &lt;a href="https://dummdida.tumblr.com/post/121087781445/re-udev-events-in-a-container">terse blog post&lt;/a>. The last line is to allow write access to the backlight (in my case, &lt;code>intel_backlight&lt;/code>) so that the &lt;code>/usr/lib/gsd-power&lt;/code> binary is able to change brightness when requested via dbus.&lt;/p>
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="se">&lt;/span> --share&lt;span class="o">=&lt;/span>/sys/class/some/device &lt;span class="se">\
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>This one trumped me for a really long time, until I finally ran across this &lt;a href="https://dummdida.tumblr.com/post/121087781445/re-udev-events-in-a-container">terse blog post&lt;/a>. If you are doing development which interacts with hardware in some way, you will likely need this section.&lt;/p>
+&lt;p>The first two lines are necessary to get udev events sent into the container. This gives GNOME access to events such as when an external hard drive is connected, or when brightness of the screen is adjusted. The last line is to allow write access to some device in the system. For example, controlling the WiFi module, or turning on the camera.&lt;/p>
 &lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl"> --share&lt;span class="o">=&lt;/span>&lt;span class="nv">$HOME&lt;/span>/.local/share/gnome-shell/extensions &lt;span class="se">\
 &lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="se">&lt;/span> --runasuser&lt;span class="o">=&lt;/span>&lt;span class="s1">&amp;#39;ln -s /home.host/.local/share/gnome-shell/extensions ~/.local/share/gnome-shell&amp;#39;&lt;/span> &lt;span class="se">\
-&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Share the host&amp;rsquo;s GNOME extensions directory. This is where the Soft Brightness extension is installed when running &lt;code>ninja -C build install&lt;/code>. Note that the first line doesn&amp;rsquo;t actually work due to a bug in x11docker. I&amp;rsquo;ve uploaded a fix to this &lt;a href="https://github.com/mviereck/x11docker/issues/475">x11docker issue&lt;/a>, but in the meantime, a workaround is to run &lt;code>ln&lt;/code> manually with &lt;code>--runasuser&lt;/code> (the second line).&lt;/p>
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Share the host&amp;rsquo;s GNOME extensions directory. Note that the first line doesn&amp;rsquo;t actually work due to a bug in x11docker. I&amp;rsquo;ve uploaded a fix to this &lt;a href="https://github.com/mviereck/x11docker/issues/475">x11docker issue&lt;/a>, but in the meantime, a workaround is to run &lt;code>ln&lt;/code> manually with &lt;code>--runasuser&lt;/code> (the second line).&lt;/p>
+&lt;p>Also note that you don&amp;rsquo;t necessarily have to share the same extensions directory as the host&amp;mdash;you could also create a separate directory entirely.&lt;/p>
 &lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl"> --runasuser&lt;span class="o">=&lt;/span>&lt;span class="s1">&amp;#39;gsettings set org.gnome.desktop.interface scaling-factor 2&amp;#39;&lt;/span> &lt;span class="se">\
 &lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="se">&lt;/span> --runasuser&lt;span class="o">=&lt;/span>&lt;span class="s2">&amp;#34;gsettings set org.gnome.desktop.wm.keybindings panel-run-dialog \&amp;#34;[&amp;#39;\\\\&amp;lt;Alt\\\\&amp;gt;F2&amp;#39;,&amp;#39;\\\\&amp;lt;Shift\\\\&amp;gt;F2&amp;#39;]\&amp;#34;&amp;#34;&lt;/span> &lt;span class="se">\
 &lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="se">&lt;/span> --runasuser&lt;span class="o">=&lt;/span>&lt;span class="s2">&amp;#34;gsettings set org.gnome.desktop.input-sources sources \&amp;#34;`gsettings get org.gnome.desktop.input-sources sources`\&amp;#34;&amp;#34;&lt;/span> &lt;span class="se">\
 &lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="se">&lt;/span> --runasuser&lt;span class="o">=&lt;/span>&lt;span class="s1">&amp;#39;touch .local/share/gnome-shell/lock-warning-shown&amp;#39;&lt;/span> &lt;span class="se">\
-&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Make GNOME slightly more usable in the container. Enable HiDPI scaling (you may want to disable that). Allow use of Shift+F2 to bring up the Run dialog, which is useful since Alt+F2 is intercepted by the host. Use keyboard layout specified by the host (since I use Dvorak). Four is the magic number of backslashes needed here, due to the way x11docker handles these strings. Don&amp;rsquo;t show the &amp;ldquo;No lock screen&amp;rdquo; warning when &lt;code>gnome-shell&lt;/code> starts.&lt;/p>
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Make GNOME slightly more usable in the container. Enable HiDPI scaling (if your screen has a decent DPI). Allow use of Shift+F2 to bring up the Run dialog, which is useful since Alt+F2 is intercepted by the host. Use keyboard layout specified by the host (since I use Dvorak). (Four is the magic number of backslashes needed here, due to the way x11docker handles these strings.) Don&amp;rsquo;t show the &amp;ldquo;No lock screen&amp;rdquo; warning when &lt;code>gnome-shell&lt;/code> starts.&lt;/p>
 &lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl"> --xtest &lt;span class="se">\
-&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Enable XTEST extension in X, which is required by &lt;code>/usr/lib/gsd-power&lt;/code> in GNOME versions 3.30 and under.&lt;/p>
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Enable the XTEST extension in X, which is required by &lt;code>/usr/lib/gsd-power&lt;/code> in GNOME versions 3.30 and under.&lt;/p>
 &lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl"> -- &lt;span class="se">\
 &lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="se">&lt;/span> --cap-add&lt;span class="o">=&lt;/span>SYS_NICE &lt;span class="se">\
 &lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Everything after the first &lt;code>--&lt;/code> is sent directly to the container engine (Docker by default). Add the &lt;code>SYS_NICE&lt;/code> capability, which is required to run the &lt;code>gnome-shell&lt;/code> binary for versions 3.38 and under.&lt;/p>
 &lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl"> -- &lt;span class="se">\
 &lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="se">&lt;/span> gnome-shell-43
-&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>After the second &lt;code>--&lt;/code> comes the image name, and the command to run. That defaults to whatever follows &lt;code>CMD&lt;/code> in the Dockerfile, so we don&amp;rsquo;t specify a command here.&lt;/p>
-&lt;p>WHEW! Glad we got that over with.&lt;/p>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>After the second &lt;code>--&lt;/code> comes the image name, and then the command to run. The command defaults to whatever follows &lt;code>CMD&lt;/code> in the Dockerfile (in our case, &lt;code>gnome-session&lt;/code>), so we don&amp;rsquo;t need to specify that here.&lt;/p>
+&lt;p>WHEW! That was a mouthful.&lt;/p>
+&lt;h1 id="simplify-invocation">Simplify invocation&lt;/h1>
+&lt;p>To simplify the whole process of starting up a GNOME container with x11docker, I created a GitHub repository called &lt;a href="https://github.com/jkitching/x11docker-gnome">jkitching/x11docker-gnome&lt;/a>. In it, you will find the following files:&lt;/p>
+&lt;ul>
+&lt;li>&lt;strong>gnome-shell-XYZ.Dockerfile:&lt;/strong> The Dockerfile necessary to build a container image for GNOME XYZ. Mostly they are identical, except for the differences mentioned in the table above. I went against the grain here and didn&amp;rsquo;t create a separate directory for each one.&lt;/li>
+&lt;li>&lt;strong>&lt;a href="https://github.com/jkitching/x11docker-gnome/blob/main/Makefile">Makefile&lt;/a>:&lt;/strong> The Makefile allows building, pushing, pulling, and running of each image. Running in this case is just invoking &lt;code>/bin/bash&lt;/code>&amp;mdash;for starting with x11docker, see below.&lt;/li>
+&lt;li>&lt;strong>&lt;a href="https://github.com/jkitching/x11docker-gnome/blob/main/run-gnome-shell.sh.template">run-gnome-shell.sh.template&lt;/a>:&lt;/strong> Rather than relying on your shell history to store the above huge x11docker invocations, copy this shell script template and make adjustments for your specific use case.&lt;/li>
+&lt;/ul>
+&lt;p>The recommended workflow is as follows:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Pull all images from Docker Hub:&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># docker.io/jkitching/gnome-shell-XYZ&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">make pull all
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Copy the run shell script template&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">cp run-gnome-shell.sh.template run-gnome-shell.sh
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">chmod +x run-gnome-shell.sh
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Make modifications as necessary&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">vim run-gnome-shell.sh
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Start GNOME container with x11docker&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">./run-gnome-shell.sh gnome-shell-39
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>x11docker also has a pretty neat way of saving command-line option templates in &lt;code>~/.config/x11docker/preset&lt;/code>, but unfortunately using this method precludes dynamically generating arguments such as the &lt;code>org.gnome.desktop.input-sources&lt;/code> setting above. Check out the &lt;a href="https://github.com/mviereck/x11docker#preconfiguration-with---preset">Preconfiguration with &lt;code>--preset&lt;/code>&lt;/a> section of documentation for details.&lt;/p>
 &lt;h1 id="go-forth-and-conquer-the-gnomes">Go forth and conquer the GNOMEs&lt;/h1>
-&lt;p>
-&lt;img src="gnome-containers.png" alt="Running multiple GNOME containers of different versions">
-&lt;/p>
-&lt;p>Now that we have the ability to run a containerized &lt;code>gnome-shell&lt;/code> of arbitrary version, development becomes much simpler. For each version of GNOME, I start up a container, enable the extension, test functionality, and make a few fixes along the way. Once I am (relatively) certain the new code is working without a hitch, I upload a commit, and create a &lt;a href="https://github.com/F-i-f/soft-brightness/pull/59">GitHub pull request&lt;/a>. Hooray!&lt;/p>
-&lt;p>Now go forth, be brave, and update your favourite extensions to work with GNOME 43!&lt;/p>
+&lt;p>Now that we have the ability to run a containerized &lt;code>gnome-shell&lt;/code> of any arbitrary version, development becomes much simpler. For example, when validating that your extension works in previous versions of GNOME, simply start up a container, enable the extension, test functionality, and make a few fixes along the way.&lt;/p>
+&lt;p>Now go forth, be brave, and use the power of containers to supercharge your GNOME development!&lt;/p>
 &lt;h1 id="addendum">Addendum&lt;/h1>
 &lt;ul>
-&lt;li>&lt;a href="https://github.com/Schneegans/gnome-shell-pod">Schneegans/gnome-shell-pod&lt;/a>: &lt;code>gnome-shell&lt;/code> containers for automated testing purposes&lt;/li>
-&lt;/ul></description></item><item><title>Amazon intern day 14: retail website and foosball</title><link>https://joelkitching.com/amazon-intern-day-14-retail-website-and-foosball/</link><pubDate>Fri, 13 May 2011 00:00:00 +0000</pubDate><guid>https://joelkitching.com/amazon-intern-day-14-retail-website-and-foosball/</guid><description>&lt;p>Today I didn&amp;rsquo;t accomplish particularly much. I messed around with setting up the retail website on my machine, and got it working. It looks very strange without the regular Amazon content in it.&lt;/p>
+&lt;li>I briefly considered grabbing specific versions of &lt;code>gnome-shell&lt;/code> from the Fedora &lt;a href="https://koji.fedoraproject.org/koji/packageinfo?packageID=9009">&amp;ldquo;koji&amp;rdquo; build system&lt;/a>. Which would be super cool&amp;mdash;instant access to a running GNOME instance of &lt;em>any&lt;/em> version, not just the latest stable versions. But realistically, unless someone is tracking down a very specific GNOME bug, I don&amp;rsquo;t think there are many use cases. Maybe next time!&lt;/li>
+&lt;li>&lt;a href="https://github.com/Schneegans/gnome-shell-pod">Schneegans/gnome-shell-pod&lt;/a> provides &lt;code>gnome-shell&lt;/code> containers for automated testing of GNOME extensions on different GNOME versions. There is a decent amount of overlap here, and perhaps some collaboration could be in order.&lt;/li>
+&lt;/ul></description></item><item><title>A brief foray into GNOME extension development</title><link>https://joelkitching.com/a-brief-foray-into-gnome-extension-development/</link><pubDate>Sat, 26 Nov 2022 00:00:00 +0000</pubDate><guid>https://joelkitching.com/a-brief-foray-into-gnome-extension-development/</guid><description>&lt;p>I used to be an exclusive user of tiling window managers, namely: &lt;a href="https://xmonad.org/">xmonad&lt;/a>. When I converted over to the GNOME world, I tried all of the window tiling extensions and settled on the excellent &lt;a href="https://github.com/paperwm/PaperWM">PaperWM&lt;/a>. But PaperWM, as with most GNOME extensions, struggled to keep up with the rapid pace of GNOME releases, and I was stuck on vanilla GNOME for some time.&lt;/p>
+&lt;p>Recently, Arch pushed the GNOME 43 release, and, surprise! I lost another extension that I have come to love: Philippe Troin&amp;rsquo;s &lt;a href="https://github.com/F-i-f/soft-brightness">Soft Brightness&lt;/a>. This extension takes the existing brightness control in GNOME, and extends the darkest setting past the limits of the physical display by adjusting gamma settings. (In other words, it prevents you from going blind when working in a dark room.) There was an &lt;a href="https://github.com/F-i-f/soft-brightness/issues/58">open issue for GNOME 43 support&lt;/a> on the Soft Brightness GitHub page, but before I wrote this post, no progress had yet been made. Rather than downgrading GNOME and waiting patiently, I decided to take matters into my own hands.&lt;/p>
+&lt;p>
+&lt;img src="soft-brightness-settings.png" alt="Settings dialog of GNOME Soft Brightness extension">
+&lt;/p>
+&lt;h1 id="update-metadatajson-and-hope-for-the-best">Update &lt;code>metadata.json&lt;/code> and hope for the best&lt;/h1>
+&lt;p>First of all, let&amp;rsquo;s clone the Soft Brightness repository, and update &lt;code>metadata.json&lt;/code> to claim support for GNOME 43.&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-diff" data-lang="diff">&lt;span class="line">&lt;span class="cl">&lt;span class="gh">diff --git a/src/metadata.json.in b/src/metadata.json.in
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="gh">index e4af9c3..33595f6 100644
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="gh">&lt;/span>&lt;span class="gd">--- a/src/metadata.json.in
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="gd">&lt;/span>&lt;span class="gi">+++ b/src/metadata.json.in
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="gi">&lt;/span>&lt;span class="gu">@@ -12,7 +12,8 @@
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="gu">&lt;/span> &amp;#34;3.38&amp;#34;,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &amp;#34;40&amp;#34;,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &amp;#34;41&amp;#34;,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="gd">- &amp;#34;42&amp;#34;
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="gd">&lt;/span>&lt;span class="gi">+ &amp;#34;42&amp;#34;,
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="gi">+ &amp;#34;43&amp;#34;
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="gi">&lt;/span> ],
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &amp;#34;url&amp;#34;: &amp;#34;https://github.com/F-i-f/soft-brightness&amp;#34;,
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &amp;#34;uuid&amp;#34;: &amp;#34;@uuid@&amp;#34;,
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>The documentation shows the incantation to build and install the extension: &lt;code>meson build &amp;amp;&amp;amp; ninja -C build install&lt;/code>. Great! Let&amp;rsquo;s re-enable the extension and see what happens.&lt;/p>
+&lt;p>
+&lt;img src="extensions-error.png" alt="Soft Brightness extension encounters an error when enabled">
+&lt;/p>
+&lt;p>Okay&amp;hellip; so that didn&amp;rsquo;t work very well. There&amp;rsquo;s something wrong with AggregateMenu. Coincidentally, the guide for &lt;a href="https://gjs.guide/extensions/upgrading/gnome-shell-43.html#quick-settings">porting extensions to GNOME 43&lt;/a> mentions that AggregateMenu has been replaced with QuickSettings. No problem! We just need to search-and-replace a few strings, and the extension is ready for action. But&amp;hellip; seems like there&amp;rsquo;s no way to &amp;ldquo;reload&amp;rdquo; the extension in a running GNOME session.&lt;/p>
+&lt;h1 id="reload-gnome-extensions">Reload GNOME extensions&lt;/h1>
+&lt;p>GNOME might not allow reloading extensions dynamically, but there is a simple workaround: reload &lt;code>gnome-shell&lt;/code> instead. For all of you X11 users, go ahead and press Alt+F2 right now, type the &lt;code>r&lt;/code> command, and hit &amp;lt;Enter&amp;gt;. Tah-dah! For all of you Wayland users&amp;hellip; I feel your pain.&lt;/p>
+&lt;p>
+&lt;img src="run-command.png" alt="GNOME Run Command dialog">
+&lt;/p>
+&lt;p>Whereas X11 architecture separates the X server (e.g. Xorg) from the compositor (e.g. Mutter or &lt;code>gnome-shell&lt;/code>), Wayland architecture merges the two, and &lt;code>gnome-shell&lt;/code> also takes on the equivalent role of an X server. &lt;a href="https://wayland.freedesktop.org/docs/html/ch03.html#sect-Wayland-Architecture-wayland_architecture">(More reading for those interested.)&lt;/a> Thus, reloading &lt;code>gnome-shell&lt;/code> in Wayland effectively brings down the entire session along with all of your running applications.&lt;/p>
+&lt;p>
+&lt;figure>
+&lt;img src="x-architecture.png" alt="X11 architecture diagram">
+&lt;figcaption>In Wayland, (4) X Server and (5) Compositor are merged.&lt;/figcaption>
+&lt;/figure>
+&lt;/p>
+&lt;p>Apparently it&amp;rsquo;s pretty easy to run a nested &lt;code>gnome-shell&lt;/code> in Wayland, but it seems to have a lot of strange issues. For example, opening up most applications from the nested window results in them being opened in&amp;hellip; the parent &lt;code>gnome-shell&lt;/code>. Huh? Also, there is no brightness control in the nested window, which is pretty important if we are to get Soft Brightness working. So&amp;hellip; until we figure out &lt;a href="https://joelkitching.com/gnome-development-with-x11docker-containers/">how to get containers involved&lt;/a>, I&amp;rsquo;m sad to say that the easiest route is to temporarily switch over to an X11 session.&lt;/p>
+&lt;h1 id="set-up-the-development-environment">Set up the development environment&lt;/h1>
+&lt;p>Once there, we can get our development workflow going:&lt;/p>
+&lt;ol>
+&lt;li>Make changes to the extension source code&lt;/li>
+&lt;li>&lt;code>ninja -C build install&lt;/code>&lt;/li>
+&lt;li>Alt+F2, &lt;code>r&lt;/code> &amp;lt;Enter&amp;gt;&lt;/li>
+&lt;li>Close and re-open &lt;code>gnome-extensions-app&lt;/code>&lt;/li>
+&lt;li>Attempt to enable extension&lt;/li>
+&lt;/ol>
+&lt;p>
+&lt;img src="dev-workflow.png" alt="GNOME development workflow screenshot">
+&lt;/p>
+&lt;p>Or for those who enjoy stringing commands together and avoiding tinkering with the UI:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">$ gnome-extensions disable soft-brightness@fifi.org &lt;span class="o">&amp;amp;&amp;amp;&lt;/span> &lt;span class="se">\
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="se">&lt;/span> ninja -C build install &lt;span class="o">&amp;amp;&amp;amp;&lt;/span> &lt;span class="se">\
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="se">&lt;/span> killall -HUP gnome-shell &lt;span class="o">&amp;amp;&amp;amp;&lt;/span> &lt;span class="se">\
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="se">&lt;/span> sleep &lt;span class="m">3&lt;/span> &lt;span class="o">&amp;amp;&amp;amp;&lt;/span> &lt;span class="se">\
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="se">&lt;/span> gnome-extensions &lt;span class="nb">enable&lt;/span> soft-brightness@fifi.org
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Sometimes the one-line error provided by &lt;code>gnome-extensions-app&lt;/code> is enough to track down the latest error. But we can get more information (a full stack trace) by watching &lt;code>gnome-shell&lt;/code> logs while reloading extensions. On a systemd-based distribution, that amounts to running &lt;code>journalctl -f _COMM=gnome-shell&lt;/code>.&lt;/p>
+&lt;h1 id="explore-with-looking-glass">Explore with Looking Glass&lt;/h1>
+&lt;p>I quickly discovered that &lt;code>s/AggregateMenu/QuickSettings/g&lt;/code> wasn&amp;rsquo;t going to cut it. My heart yearned for Chrome Developer Tools, which lets you click a UI element to inspect its properties and position in the DOM. And then the heavenly words appeared, glowing softly in my Google search results: &lt;a href="https://wiki.gnome.org/Projects/GnomeShell/LookingGlass">Looking Glass&lt;/a>. Although nowhere near as advanced as Developer Tools, it allows us to inspect the JavaScript world of a running instance of &lt;code>gnome-shell&lt;/code>, and interactively make modifications.&lt;/p>
+&lt;p>Looking Glass is accessible via Alt+F2 and then &lt;code>lg&lt;/code>. Honestly, it&amp;rsquo;s somewhat frustrating to use, since it blocks interaction with the UI until closed with &amp;lt;Esc&amp;gt;. But for our purposes, it should be more than sufficient.&lt;/p>
+&lt;p>
+&lt;img src="looking-glass.png" alt="Looking Glass dialog">
+&lt;/p>
+&lt;p>To familiarize ourselves with QuickSettings, let&amp;rsquo;s see if we can remove the brightness indicator. In order to figure out the correct set of instructions, we refer to (1) existing Soft Brightness code, (2) the commit used to convert the brightness indicator over to QuickSettings (&lt;a href="https://gitlab.gnome.org/GNOME/gnome-shell/-/commit/7bbd59838a6cfe14b189fa7bd8e743fb0cac9bc3">status/brightness: Port to quick settings&lt;/a>), and (3) an extension for customizing QuickSettings (&lt;a href="https://github.com/qwreey75/quick-settings-tweaks/blob/e7eab279bbe2cfaeb59a7068808166ac7c5c046d/features/dndQuickToggle.js">Quick Settings Tweaker&lt;/a>). We lather liberally with trial and error, and come out with this JavaScript sequence:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-javascript" data-lang="javascript">&lt;span class="line">&lt;span class="cl">&lt;span class="nx">QS&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="nx">imports&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">ui&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">main&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">panel&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">statusArea&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">quickSettings&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nx">b&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="nx">QS&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">_settings&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nx">bi&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="nx">b&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">quickSettingsItems&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="p">];&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nx">bi&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">_proxy&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">run_dispose&lt;/span>&lt;span class="p">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nx">bi&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">get_parent&lt;/span>&lt;span class="p">().&lt;/span>&lt;span class="nx">remove_child&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">bi&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nx">b&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">get_parent&lt;/span>&lt;span class="p">().&lt;/span>&lt;span class="nx">remove_child&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">b&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nx">b&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">destroy&lt;/span>&lt;span class="p">();&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>
+&lt;img src="quick-settings-no-brightness.png" alt="QuickSettings without brightness indicator">
+&lt;/p>
+&lt;p>And&amp;hellip; it&amp;rsquo;s gone! Well, that&amp;rsquo;s rather satisfying, but slightly awkward. Let&amp;rsquo;s reload &lt;code>gnome-shell&lt;/code> to get it back. (Again, sorry Wayland users!)&lt;/p>
+&lt;h1 id="current-strategy-used-by-soft-brightness">Current strategy used by Soft Brightness&lt;/h1>
+&lt;p>In current Soft Brightness code, the brightness indicator class is extended, and functions are overridden to serve the extension&amp;rsquo;s needs. When the extension is enabled, the modified class is instantiated, and the existing brightness indicator is swapped out with the modified one:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-javascript" data-lang="javascript">&lt;span class="line">&lt;span class="cl">&lt;span class="kr">const&lt;/span> &lt;span class="nx">Indicator&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="nx">imports&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">ui&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">status&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">brightness&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">Indicator&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kr">class&lt;/span> &lt;span class="nx">ModifiedBrightnessIndicator&lt;/span> &lt;span class="kr">extends&lt;/span> &lt;span class="nx">Indicator&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">_sliderChanged&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">slider&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{&lt;/span> &lt;span class="p">...&lt;/span> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">_sync&lt;/span>&lt;span class="p">()&lt;/span> &lt;span class="p">{&lt;/span> &lt;span class="p">...&lt;/span> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>It turns out that in the process of converting the brightness indicator to QuickSettings &lt;a href="https://gitlab.gnome.org/GNOME/gnome-shell/-/commit/7bbd59838a6cfe14b189fa7bd8e743fb0cac9bc3#e220cd54002c151792a62cbc832b05dd3ad65ad0_20_16">(GitLab commit)&lt;/a>, the &lt;code>Indicator&lt;/code> class was renamed, made private, and hidden behind a wrapper class called &lt;code>SystemIndicator&lt;/code>:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-javascript" data-lang="javascript">&lt;span class="line">&lt;span class="cl">&lt;span class="c1">// Class is private to this module and not exported
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="kr">class&lt;/span> &lt;span class="nx">BrightnessItem&lt;/span> &lt;span class="kr">extends&lt;/span> &lt;span class="nx">QuickSlider&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">_sliderChanged&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">slider&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{&lt;/span> &lt;span class="p">...&lt;/span> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">_sync&lt;/span>&lt;span class="p">()&lt;/span> &lt;span class="p">{&lt;/span> &lt;span class="p">...&lt;/span> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">// Class is exported as imports.ui.status.brightness.Indicator
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="kr">class&lt;/span> &lt;span class="nx">Indicator&lt;/span> &lt;span class="kr">extends&lt;/span> &lt;span class="nx">SystemIndicator&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">_init&lt;/span>&lt;span class="p">()&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">this&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">quickSettingsItems&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">push&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="k">new&lt;/span> &lt;span class="nx">BrightnessItem&lt;/span>&lt;span class="p">());&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Rather than completely re-implementing the new &lt;code>BrightnessItem&lt;/code> class and dealing with spaghetti code for handling &lt;code>gnome-shell&lt;/code> 42/43 differences, we take a different approach: monkey patching.&lt;/p>
+&lt;h1 id="monkey-patching-the-brightness-indicator">Monkey patching the brightness indicator&lt;/h1>
+&lt;p>Although monkey patching is generally frowned upon, it can be useful in an environment where extensibility is limited.&lt;/p>
+&lt;p>Instead of swapping out a completely new brightness indicator object, we keep the existing brightness indicator in tact, but modify its behaviour while the Soft Brightness extension is enabled.&lt;/p>
+&lt;p>We implement two functions to perform the monkey patching and restoration when the extension is disabled, taking care to &lt;strong>&lt;code>bind()&lt;/code>&lt;/strong> our function&amp;rsquo;s &lt;code>this&lt;/code> variable to the indicator object itself:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-javascript" data-lang="javascript">&lt;span class="line">&lt;span class="cl">&lt;span class="nx">_enableBrightnessIndicatorPatch&lt;/span>&lt;span class="p">()&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kr">const&lt;/span> &lt;span class="nx">indicator&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="k">this&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">_brightnessIndicator&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">indicator&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">__orig__slider_changed&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="nx">indicator&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">_slider_changed&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">indicator&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">_slider_changed&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="kd">function&lt;/span>&lt;span class="p">()&lt;/span> &lt;span class="p">{&lt;/span> &lt;span class="p">...&lt;/span> &lt;span class="p">}).&lt;/span>&lt;span class="nx">bind&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">indicator&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nx">_disableBrightnessIndicatorPatch&lt;/span>&lt;span class="p">()&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kr">const&lt;/span> &lt;span class="nx">indicator&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="k">this&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">_brightnessIndicator&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">indicator&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">setSliderValue&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="nx">indicator&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">__orig__setSliderValue&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">delete&lt;/span> &lt;span class="nx">indicator&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">__orig_setSliderValue&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h1 id="trouble-with-brightnessproxy">Trouble with &lt;code>BrightnessProxy&lt;/code>&lt;/h1>
+&lt;p>This strategy works great. However, the extension exhibits some strange behaviour in GNOME 42 and below. It turns out that despite swapping out the &lt;code>_sync&lt;/code> function, the Brightness proxy (used for setting and accessing system backlight brightness) still calls the old function! What&amp;rsquo;s going on here?&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-javascript" data-lang="javascript">&lt;span class="line">&lt;span class="cl">&lt;span class="kr">class&lt;/span> &lt;span class="nx">BrightnessItem&lt;/span> &lt;span class="kr">extends&lt;/span> &lt;span class="nx">QuickSlider&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">_init&lt;/span>&lt;span class="p">()&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">this&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">_proxy&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="nx">BrightnessProxy&lt;/span>&lt;span class="p">(...,&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="nx">proxy&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="nx">error&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">=&amp;gt;&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">this&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">_proxy&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">connect&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s1">&amp;#39;g-properties-changed&amp;#39;&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// This _sync call is causing our headache.
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="p">()&lt;/span> &lt;span class="p">=&amp;gt;&lt;/span> &lt;span class="k">this&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">_sync&lt;/span>&lt;span class="p">());&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">});&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>This bit of code is &lt;strong>exactly&lt;/strong> the same in both GNOME versions 42 and 43. Barring some part of the JS spec that I&amp;rsquo;m missing (totally possible), the only natural conclusion is that there is some bug in how GNOME 42&amp;rsquo;s JavaScript engine (SpiderMonkey) handles the &amp;ldquo;this&amp;rdquo; keyword w.r.t. arrow functions. &lt;strong>If anyone &lt;em>does&lt;/em> have some conclusive information, I would love to hear from you!&lt;/strong>&lt;/p>
+&lt;p>Unfortunately, we can&amp;rsquo;t change the proxy&amp;rsquo;s callback function on-the-fly. So, our best course of action is to destroy and re-create the proxy, with a callback function that reliably calls the currently-used &lt;code>_sync&lt;/code>:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-javascript" data-lang="javascript">&lt;span class="line">&lt;span class="cl">&lt;span class="nx">indicator&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">_proxy&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">run_dispose&lt;/span>&lt;span class="p">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nx">indicator&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">_proxy&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="nx">BrightnessProxy&lt;/span>&lt;span class="p">(...,&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="kd">function&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="nx">proxy&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="nx">error&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">this&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">_proxy&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">connect&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s1">&amp;#39;g-properties-changed&amp;#39;&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">()&lt;/span> &lt;span class="p">=&amp;gt;&lt;/span> &lt;span class="k">this&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">_sync&lt;/span>&lt;span class="p">());&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}).&lt;/span>&lt;span class="nx">bind&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">indicator&lt;/span>&lt;span class="p">));&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Note that we have to convert the function passed to &lt;code>BrightnessProxy&lt;/code> to the form &lt;code>(function(x, y) {...})&lt;/code> in order to call &lt;strong>&lt;code>bind()&lt;/code>&lt;/strong>. And this fixes our issue!&lt;/p>
+&lt;h1 id="clean-up-document-and-upload-changes">Clean up, document, and upload changes&lt;/h1>
+&lt;p>This is the most important part. I extensively document the problems encountered with &lt;code>BrightnessProxy&lt;/code>, author a commit message explaining the rationale behind using monkey patching, and create a &lt;a href="https://github.com/F-i-f/soft-brightness/pull/59">GitHub pull request&lt;/a>. And we&amp;rsquo;re done!&lt;/p>
+&lt;p>There is one point that I conveniently glossed over: testing the GNOME extension in previous versions of GNOME&amp;hellip; how did I do that? Let&amp;rsquo;s look at GNOME containerization in the next post, &lt;a href="https://joelkitching.com/gnome-development-with-x11docker-containers/">GNOME development with x11docker containers&lt;/a>.&lt;/p></description></item><item><title>Amazon intern day 14: retail website and foosball</title><link>https://joelkitching.com/amazon-intern-day-14-retail-website-and-foosball/</link><pubDate>Fri, 13 May 2011 00:00:00 +0000</pubDate><guid>https://joelkitching.com/amazon-intern-day-14-retail-website-and-foosball/</guid><description>&lt;p>Today I didn&amp;rsquo;t accomplish particularly much. I messed around with setting up the retail website on my machine, and got it working. It looks very strange without the regular Amazon content in it.&lt;/p>
 &lt;h1 id="local-retail-website-magic">Local retail website magic&lt;/h1>
 &lt;p>When you run the retail website locally, it has a very neat feature where you can add &lt;code>?isConfig=1&lt;/code> to the end of the URL, and it will show you each component on the page, how long it took to load, and some other cool information. It will also point you directly to the Mason code and the HTML used to generate it, in case you are trying to debug a component that might, for example, be taking a really long time to run.&lt;/p>
 &lt;h1 id="chroot-progress">chroot progress&lt;/h1>
