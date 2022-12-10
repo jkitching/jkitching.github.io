@@ -15,6 +15,10 @@
 &lt;img src="x11docker-xephyr.png" alt="x11docker running with xephyr">
 &lt;/p>
 &lt;p>x11docker can be used to run either a single application, which is then seamlessly integrated into your current window manager, or a full desktop environment, which is what we will be using. The project provides some pre-built Docker images such as &lt;code>x11docker/gnome&lt;/code> to get started, but we will need to build our own since we have specific requirements of the GNOME version being used.&lt;/p>
+&lt;h1 id="x11docker-installation">x11docker installation&lt;/h1>
+&lt;p>First, you&amp;rsquo;ll need a container engine on your machine&amp;mdash;this article uses Docker. Next, see &lt;a href="https://github.com/mviereck/x11docker#installation-from-distribution-repositories">x11docker documentation&lt;/a> for installation instructions. x11docker may be available as a package for your distribution, or you can install manually.&lt;/p>
+&lt;p>It&amp;rsquo;s worth mentioning that x11docker is crazy smart about other dependencies. If these dependencies already exist on your system (like Xephyr, &lt;code>xinit&lt;/code>, &lt;code>xclip&lt;/code>, etc.), they will be used. For any dependencies not installed, x11docker will automatically use dependencies from a container image created for this purpose.&lt;/p>
+&lt;p>Next up, we need a Dockerfile to describe the GNOME image.&lt;/p>
 &lt;h1 id="x11docker-gnome-dockerfile">x11docker GNOME Dockerfile&lt;/h1>
 &lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-docker" data-lang="docker">&lt;span class="line">&lt;span class="cl">&lt;span class="k">FROM&lt;/span>&lt;span class="s"> fedora:36&lt;/span>&lt;span class="err">
 &lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="k">RUN&lt;/span> dnf -y update &lt;span class="o">&amp;amp;&amp;amp;&lt;/span> &lt;span class="se">\
@@ -215,11 +219,11 @@
 &lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>After the second &lt;code>--&lt;/code> comes the image name, and then the command to run. The command defaults to whatever follows &lt;code>CMD&lt;/code> in the Dockerfile (in our case, &lt;code>gnome-session&lt;/code>), so we don&amp;rsquo;t need to specify that here.&lt;/p>
 &lt;p>WHEW! That was a mouthful.&lt;/p>
 &lt;h1 id="simplify-invocation">Simplify invocation&lt;/h1>
-&lt;p>To simplify the whole process of starting up a GNOME container with x11docker, I created a GitHub repository called &lt;a href="https://github.com/jkitching/x11docker-gnome">jkitching/x11docker-gnome&lt;/a>. In it, you will find the following files:&lt;/p>
+&lt;p>To simplify the whole process of starting up a GNOME container with x11docker, I created the GitHub repo &lt;a href="https://github.com/jkitching/x11docker-gnome">jkitching/x11docker-gnome&lt;/a>. In it, you will find the following files:&lt;/p>
 &lt;ul>
 &lt;li>&lt;strong>gnome-shell-XYZ.Dockerfile:&lt;/strong> The Dockerfile necessary to build a container image for GNOME XYZ. Mostly they are identical, except for the differences mentioned in the table above. I went against the grain here and didn&amp;rsquo;t create a separate directory for each one.&lt;/li>
-&lt;li>&lt;strong>&lt;a href="https://github.com/jkitching/x11docker-gnome/blob/main/Makefile">Makefile&lt;/a>:&lt;/strong> The Makefile allows building, pushing, pulling, and running of each image. Running in this case is just invoking &lt;code>/bin/bash&lt;/code>&amp;mdash;for starting with x11docker, see below.&lt;/li>
-&lt;li>&lt;strong>&lt;a href="https://github.com/jkitching/x11docker-gnome/blob/main/run-gnome-shell.sh.template">run-gnome-shell.sh.template&lt;/a>:&lt;/strong> Rather than relying on your shell history to store the above huge x11docker invocations, copy this shell script template and make adjustments for your specific use case.&lt;/li>
+&lt;li>&lt;strong>&lt;a href="https://github.com/jkitching/x11docker-gnome/blob/main/Makefile">Makefile&lt;/a>:&lt;/strong> The Makefile allows building, pushing, pulling, and running of each image. Running in this case is just invoking &lt;code>/bin/bash&lt;/code>&amp;mdash;for starting with x11docker, see &lt;code>run-gnome-desktop.sh.template&lt;/code>.&lt;/li>
+&lt;li>&lt;strong>&lt;a href="https://github.com/jkitching/x11docker-gnome/blob/main/run-gnome-desktop.sh.template">run-gnome-desktop.sh.template&lt;/a>:&lt;/strong> Rather than relying on your shell history to store the above huge x11docker invocations, copy this shell script template and make adjustments for your specific use case.&lt;/li>
 &lt;/ul>
 &lt;p>The recommended workflow is as follows:&lt;/p>
 &lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Pull all images from Docker Hub:&lt;/span>
@@ -227,20 +231,21 @@
 &lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">make pull all
 &lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
 &lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Copy the run shell script template&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">cp run-gnome-shell.sh.template run-gnome-shell.sh
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">chmod +x run-gnome-shell.sh
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">cp run-gnome-desktop.sh.template run-gnome-desktop.sh
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">chmod +x run-gnome-desktop.sh
 &lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
 &lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Make modifications as necessary&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">vim run-gnome-shell.sh
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">vim run-gnome-desktop.sh
 &lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
 &lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Start GNOME container with x11docker&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">./run-gnome-shell.sh gnome-shell-39
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">./run-gnome-desktop.sh gnome-shell-39
 &lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>x11docker also has a pretty neat way of saving command-line option templates in &lt;code>~/.config/x11docker/preset&lt;/code>, but unfortunately using this method precludes dynamically generating arguments such as the &lt;code>org.gnome.desktop.input-sources&lt;/code> setting above. Check out the &lt;a href="https://github.com/mviereck/x11docker#preconfiguration-with---preset">Preconfiguration with &lt;code>--preset&lt;/code>&lt;/a> section of documentation for details.&lt;/p>
 &lt;h1 id="go-forth-and-conquer-the-gnomes">Go forth and conquer the GNOMEs&lt;/h1>
 &lt;p>Now that we have the ability to run a containerized &lt;code>gnome-shell&lt;/code> of any arbitrary version, development becomes much simpler. For example, when validating that your extension works in previous versions of GNOME, simply start up a container, enable the extension, test functionality, and make a few fixes along the way.&lt;/p>
 &lt;p>Now go forth, be brave, and use the power of containers to supercharge your GNOME development!&lt;/p>
 &lt;h1 id="addendum">Addendum&lt;/h1>
 &lt;ul>
+&lt;li>Each Linux system is set up differently, running on unique hardware configurations. As such, it&amp;rsquo;s highly likely you may encounter some difficulty in getting the GNOME containers to start up properly on your system. Play around with command-line options, search Google liberally, and check out x11docker&amp;rsquo;s detailed &lt;a href="https://github.com/mviereck/x11docker">README documentation&lt;/a> and &lt;a href="https://github.com/mviereck/x11docker/wiki">GitHub Wiki&lt;/a>.&lt;/li>
 &lt;li>I briefly considered grabbing specific versions of &lt;code>gnome-shell&lt;/code> from the Fedora &lt;a href="https://koji.fedoraproject.org/koji/packageinfo?packageID=9009">&amp;ldquo;koji&amp;rdquo; build system&lt;/a>. Which would be super cool&amp;mdash;instant access to a running GNOME instance of &lt;em>any&lt;/em> version, not just the latest stable versions. But realistically, unless someone is tracking down a very specific GNOME bug, I don&amp;rsquo;t think there are many use cases. Maybe next time!&lt;/li>
 &lt;li>&lt;a href="https://github.com/Schneegans/gnome-shell-pod">Schneegans/gnome-shell-pod&lt;/a> provides &lt;code>gnome-shell&lt;/code> containers for automated testing of GNOME extensions on different GNOME versions. There is a decent amount of overlap here, and perhaps some collaboration could be in order.&lt;/li>
 &lt;/ul></description></item><item><title>A brief foray into GNOME extension development</title><link>https://joelkitching.com/a-brief-foray-into-gnome-extension-development/</link><pubDate>Sat, 26 Nov 2022 00:00:00 +0000</pubDate><guid>https://joelkitching.com/a-brief-foray-into-gnome-extension-development/</guid><description>&lt;p>I used to be an exclusive user of tiling window managers, namely: &lt;a href="https://xmonad.org/">xmonad&lt;/a>. When I converted over to the GNOME world, I tried all of the window tiling extensions and settled on the excellent &lt;a href="https://github.com/paperwm/PaperWM">PaperWM&lt;/a>. But PaperWM, as with most GNOME extensions, struggled to keep up with the rapid pace of GNOME releases, and I was stuck on vanilla GNOME for some time.&lt;/p>
