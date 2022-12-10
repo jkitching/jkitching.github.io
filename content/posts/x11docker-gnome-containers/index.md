@@ -24,6 +24,14 @@ Today, we will learn how to run a slimmed-down GNOME environment of any arbitrar
 
 x11docker can be used to run either a single application, which is then seamlessly integrated into your current window manager, or a full desktop environment, which is what we will be using.  The project provides some pre-built Docker images such as `x11docker/gnome` to get started, but we will need to build our own since we have specific requirements of the GNOME version being used.
 
+# x11docker installation
+
+First, you'll need a container engine on your machine---this article uses Docker.  Next, see [x11docker documentation](https://github.com/mviereck/x11docker#installation-from-distribution-repositories) for installation instructions.  x11docker may be available as a package for your distribution, or you can install manually.
+
+  It's worth mentioning that x11docker is crazy smart about other dependencies.  If these dependencies already exist on your system (like Xephyr, `xinit`, `xclip`, etc.), they will be used.  For any dependencies not installed, x11docker will automatically use dependencies from a container image created for this purpose.
+
+Next up, we need a Dockerfile to describe the GNOME image.
+
 # x11docker GNOME Dockerfile
 
 ```docker
@@ -78,7 +86,7 @@ org.gnome.SettingsDaemon.XSettings
 
 Here's a list of Fedora versions with corresponding GNOME versions (as of December 5, 2022), along with any modifications required to the base Dockerfile shown above:
 
-| Fedora version | GNOME version |
+| Fedora version | GNOME version | | |
 |----|--------|--|--|
 | 38 | 43.1   | § |
 | 36 | 42.4   |
@@ -212,11 +220,11 @@ WHEW!  That was a mouthful.
 
 # Simplify invocation
 
-To simplify the whole process of starting up a GNOME container with x11docker, I created a GitHub repository called [jkitching/x11docker-gnome](https://github.com/jkitching/x11docker-gnome).  In it, you will find the following files:
+To simplify the whole process of starting up a GNOME container with x11docker, I created the GitHub repo [jkitching/x11docker-gnome](https://github.com/jkitching/x11docker-gnome).  In it, you will find the following files:
 
 * **gnome-shell-XYZ.Dockerfile:** The Dockerfile necessary to build a container image for GNOME XYZ.  Mostly they are identical, except for the differences mentioned in the table above.  I went against the grain here and didn't create a separate directory for each one.
-* **[Makefile](https://github.com/jkitching/x11docker-gnome/blob/main/Makefile):** The Makefile allows building, pushing, pulling, and running of each image.  Running in this case is just invoking `/bin/bash`---for starting with x11docker, see below.
-* **[run-gnome-shell.sh.template](https://github.com/jkitching/x11docker-gnome/blob/main/run-gnome-shell.sh.template):** Rather than relying on your shell history to store the above huge x11docker invocations, copy this shell script template and make adjustments for your specific use case.
+* **[Makefile](https://github.com/jkitching/x11docker-gnome/blob/main/Makefile):** The Makefile allows building, pushing, pulling, and running of each image.  Running in this case is just invoking `/bin/bash`---for starting with x11docker, see `run-gnome-desktop.sh.template`.
+* **[run-gnome-desktop.sh.template](https://github.com/jkitching/x11docker-gnome/blob/main/run-gnome-desktop.sh.template):** Rather than relying on your shell history to store the above huge x11docker invocations, copy this shell script template and make adjustments for your specific use case.
 
 The recommended workflow is as follows:
 
@@ -226,14 +234,14 @@ The recommended workflow is as follows:
 make pull all
 
 # Copy the run shell script template
-cp run-gnome-shell.sh.template run-gnome-shell.sh
-chmod +x run-gnome-shell.sh
+cp run-gnome-desktop.sh.template run-gnome-desktop.sh
+chmod +x run-gnome-desktop.sh
 
 # Make modifications as necessary
-vim run-gnome-shell.sh
+vim run-gnome-desktop.sh
 
 # Start GNOME container with x11docker
-./run-gnome-shell.sh gnome-shell-39
+./run-gnome-desktop.sh gnome-shell-39
 ```
 
 x11docker also has a pretty neat way of saving command-line option templates in `~/.config/x11docker/preset`, but unfortunately using this method precludes dynamically generating arguments such as the `org.gnome.desktop.input-sources` setting above.  Check out the [Preconfiguration with `--preset`](https://github.com/mviereck/x11docker#preconfiguration-with---preset) section of documentation for details.
@@ -246,5 +254,6 @@ Now go forth, be brave, and use the power of containers to supercharge your GNOM
 
 # Addendum
 
+* Each Linux system is set up differently, running on unique hardware configurations.  As such, it's highly likely you may encounter some difficulty in getting the GNOME containers to start up properly on your system.  Play around with command-line options, search Google liberally, and check out x11docker's detailed [README documentation](https://github.com/mviereck/x11docker) and [GitHub Wiki](https://github.com/mviereck/x11docker/wiki).
 * I briefly considered grabbing specific versions of `gnome-shell` from the Fedora ["koji" build system](https://koji.fedoraproject.org/koji/packageinfo?packageID=9009).  Which would be super cool---instant access to a running GNOME instance of *any* version, not just the latest stable versions.  But realistically, unless someone is tracking down a very specific GNOME bug, I don't think there are many use cases.  Maybe next time!
 * [Schneegans/gnome-shell-pod](https://github.com/Schneegans/gnome-shell-pod) provides `gnome-shell` containers for automated testing of GNOME extensions on different GNOME versions.  There is a decent amount of overlap here, and perhaps some collaboration could be in order.
