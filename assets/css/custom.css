@@ -4,3 +4,11 @@ table {
 td, th {
     padding: 0 10px;
 }
+main#content code {
+    padding: 1px 4px;
+    background: #f0f0f0;
+}
+pre code {
+    padding: 0 !important;
+    background: none !important;
+}
