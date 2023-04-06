@@ -1,3 +1,6 @@
+header#banner nav ul li {
+    margin: 0 4px;
+}
 table {
     margin: 0 auto;
 }
