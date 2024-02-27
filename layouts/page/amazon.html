@@ -1,0 +1,13 @@
+{{ define "main" }}
+
+<h2>{{ .Title }}</h2>
+
+{{ .Content }}
+
+<ul id="posts">
+{{- range where site.RegularPages "Type" "eq" "amazon" }}
+    {{ .Render "li" }}
+{{- end }}
+</ul>
+
+{{ end }}

@@ -33,6 +33,7 @@ pygmentsUseClasses = true
     weight = 50
 
 [permalinks]
+  amazon = "/:title/"
   posts = "/:title/"
 
 [markup.goldmark.renderer]
