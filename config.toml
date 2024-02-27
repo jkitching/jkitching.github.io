@@ -1,6 +1,5 @@
 baseURL = "https://joelkitching.com/"
 title = "Joel Kitching"
-theme = "etch"
 languageCode = "en-US"
 enableInlineShortcodes = true
 pygmentsCodeFences = true

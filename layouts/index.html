@@ -1,0 +1,12 @@
+{{ define "main" }}
+{{ .Content }}
+
+<ul id="posts">
+{{- range where site.RegularPages "Type" "eq" "posts" }}
+    {{ .Render "li" }}
+{{- end }}
+</ul>
+
+<small>Archived: <a href="/amazon/">Amazon intership 2011</a></small>
+
+{{ end }}
