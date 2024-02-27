@@ -7,7 +7,7 @@ pygmentsUseClasses = true
 
 [params]
   description = "Joel Kitching"
-  copyright = "Copyright © 2022 Joel Isaac Stewart Davies-Kitching"
+  copyright = "Copyright © 2022–2024 Joel Isaac Stewart Davies-Kitching"
   dark = "auto"
   highlight = true
 
@@ -21,11 +21,6 @@ pygmentsUseClasses = true
     name = "about"
     url = "/about/"
     weight = 20
-
-  [[menu.main]]
-    name = "twitter"
-    url = "https://twitter.com/joelkitching"
-    weight = 30
 
   [[menu.main]]
     name = "github"
