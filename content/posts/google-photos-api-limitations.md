@@ -1,7 +1,6 @@
 ---
 title: "Unreasonable limitations of Google Photos API"
 date: 2024-03-04
-draft: false
 ---
 
 **Beware:** Google Photos API is *not* suitable for reorganizing your photo collection.  From [Google for Developers documentation](https://developers.google.com/photos/library/guides/manage-albums):

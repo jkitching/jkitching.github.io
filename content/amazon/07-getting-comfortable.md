@@ -1,7 +1,6 @@
 ---
 title: "Amazon intern day 7: getting comfortable"
 date: 2011-05-06
-draft: false
 ---
 
 Today was quite a long day.  It started out with me considering whether or not to go look at [Moda Apartments](http://www.equityapartments.com/bbrochure.aspx?PropertyId=4011) which Aboda had suggested (their ulterior motive likely being that they like Moda because it rhymes with their name). But, after seeing some of the reviews of the place, and noting that the square footages of the units are sometimes half that of the place I am currently in, I decided that it wasn't worth it.

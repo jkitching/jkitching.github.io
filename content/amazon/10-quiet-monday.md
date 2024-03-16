@@ -1,7 +1,6 @@
 ---
 title: "Amazon intern day 10: quiet Monday"
 date: 2011-05-09
-draft: false
 ---
 
 Monday's morning was fairly typical in the beginning, up until arriving at work.  When I did, at 9 AM, it was eerily quiet.  I think this is fairly typical at Amazon in the morning, however the quiet was exacerbated by the fact that neither my mentor nor my manager were there.

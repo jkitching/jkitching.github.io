@@ -1,7 +1,6 @@
 ---
 title: "Amazon intern day 2: exploration"
 date: 2011-05-01
-draft: false
 ---
 
 I woke up very early, at around 8 AM, unable to pretend to sleep any longer. I took a shower in my new bathroom, and messed around on my computer for a bit. My parents finally woke up and got ready at their hotel, and came over to my apartment at around 10 AM.

@@ -1,7 +1,6 @@
 ---
 title: "Amazon intern day 3: first day at Amazon"
 date: 2011-05-02
-draft: false
 ---
 
 I set my alarm for 8 AM, but woke up of my own accord.  I showered, attempted to extract a semi-professional outfit from my still very packed collection of clothing, and then called Aboda about housing.  Apparently they can't do anything without authorization from Graebel.  So then I called Graebel.

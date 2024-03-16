@@ -1,7 +1,6 @@
 ---
 title: "Coding a simple algorithm with ChatGPT"
 date: 2023-04-06
-draft: false
 ---
 
 Lately, it's almost impossible to open up Hacker News without encountering an article extolling the virtues of LLM-assisted programming.  I wanted to give it a try---but I decided to start with something small.

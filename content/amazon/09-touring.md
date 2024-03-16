@@ -1,7 +1,6 @@
 ---
 title: "Amazon intern day 9: touring"
 date: 2011-05-08
-draft: false
 ---
 
 It took quite a while for myself, and my friend Spencer who was visiting, to wake up.  We lounged about, showered, ate the food Spencer had cooked last night, had some cereal and yogurt and bananas, and then made our Mother's Day calls.

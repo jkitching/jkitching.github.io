@@ -1,7 +1,6 @@
 ---
 title: "A brief foray into GNOME extension development"
 date: 2022-11-26
-draft: false
 ---
 
 I used to be an exclusive user of tiling window managers, namely: [xmonad](https://xmonad.org/).  When I converted over to the GNOME world, I tried all of the window tiling extensions and settled on the excellent [PaperWM](https://github.com/paperwm/PaperWM).  But PaperWM, as with most GNOME extensions, struggled to keep up with the rapid pace of GNOME releases, and I was stuck on vanilla GNOME for some time.

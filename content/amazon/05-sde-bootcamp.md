@@ -1,7 +1,6 @@
 ---
 title: "Amazon intern day 5: SDE Bootcamp"
 date: 2011-05-04
-draft: false
 ---
 
 I'm pretty exhausted right now and it's already half-past midnight, so this may have to be a somewhat abridged post.  Today was probably my most productive day in terms of not having zillions of meetings to go to, and starting the SDE Bootcamp that they keep telling me to work on.

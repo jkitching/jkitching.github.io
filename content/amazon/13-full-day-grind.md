@@ -1,7 +1,6 @@
 ---
 title: "Amazon intern day 13: the full-day grind"
 date: 2011-05-12
-draft: false
 ---
 
 Today was my big day-long tutorial about Amazon and Prime-land!  I attempted to go in to work well-rested and well-fed, although I ended up being a bit worried since I couldn't quite remember if we were supposed to start at 9 AM or 10 AM.  I was in fact late, so luckily it was 10 AM.

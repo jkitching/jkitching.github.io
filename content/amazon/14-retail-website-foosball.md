@@ -1,7 +1,6 @@
 ---
 title: "Amazon intern day 14: retail website and foosball"
 date: 2011-05-13
-draft: false
 ---
 
 Today I didn't accomplish particularly much.  I messed around with setting up the retail website on my machine, and got it working.  It looks very strange without the regular Amazon content in it.

@@ -1,7 +1,6 @@
 ---
 title: "Amazon intern day 6: my first commit"
 date: 2011-05-05
-draft: false
 ---
 
 According to some memo that went out, today was Classy Thursday!  (Since Classy Thursday gives new meaning to Casual Friday.)  Apparently usually only this other Prime team participates in such an event, but I figured I may as well make an attempt.  So off to work I went in my classy shirt and my classy tie, and my questionably classy maroon pants and my even more questionably classy old blue Adidas.

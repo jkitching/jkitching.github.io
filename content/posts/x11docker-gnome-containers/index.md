@@ -1,7 +1,6 @@
 ---
 title: "GNOME development with x11docker containers"
 date: 2022-12-05
-draft: false
 ---
 
 ![Running multiple containers of different GNOME versions](gnome-containers.png)

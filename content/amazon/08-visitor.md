@@ -1,7 +1,6 @@
 ---
 title: "Amazon intern day 8: visitor"
 date: 2011-05-07
-draft: false
 ---
 
 Today I got up, and basically decided that I am definitely going to stay here, since I don't want to fight with Graebel et al.  So that, combined with the fact that my friend Spencer was arriving today to visit, caused me to decide that I should start treating this place like home, cleaning up, and arranging things how I like them for the next four months.

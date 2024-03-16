@@ -1,7 +1,6 @@
 ---
 title: "Amazon intern day 11: explain it to me"
 date: 2011-05-10
-draft: false
 ---
 
 Today was a long day of explanations, farewells, and hellos.  Spencer, the friend who was staying at my apartment for a few days, and I got up at relatively the same time this morning, and cooked up a quick breakfast (which included leftover pekoras).  When I was leaving, we made arrangements for where he would put my keys, so that when he left later on in the afternoon to head to the airport, he would be able to lock my door.  It would be put in the flowerpot in the lobby!

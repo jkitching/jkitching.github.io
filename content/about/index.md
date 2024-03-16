@@ -1,6 +1,5 @@
 ---
 title: "About me"
-draft: false
 ---
 
 Hello!  My name is Joel Isaac Stewart Davies-Kitching, and I'm a Canadian software engineer based (lost?) in Taipei.

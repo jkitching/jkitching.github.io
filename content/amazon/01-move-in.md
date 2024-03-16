@@ -1,7 +1,6 @@
 ---
 title: "Amazon intern day 1: move-in"
 date: 2011-04-30
-draft: false
 ---
 
 I received my housing assignment with Amazon's corporate housing company, Aboda, on Thursday (a mere two days ago). Amazon subsidizes housing, and offers interns two options: the first is to take $1000 extra on your paycheque each month, with which you may do what you please in finding your own housing. The other option is to use their relocation company, Graebel, which provides you with a fully-assisted move, including housing through Aboda.

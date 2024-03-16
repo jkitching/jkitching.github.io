@@ -1,7 +1,6 @@
 ---
 title: "Amazon intern day 4: meetings"
 date: 2011-05-03
-draft: false
 ---
 
 Today was fairly exhausting, and chock-full of meetings around the clock.  I think in total I had about two hours or so sitting at my desk actually doing semi-useful work setting up my workspace.  (I still haven't started the SDE Bootcamp, which my mentor, Chris, keeps asking me about!)

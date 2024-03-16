@@ -1,7 +1,6 @@
 ---
 title: "Amazon intern day 12: in which a project is chosen"
 date: 2011-05-11
-draft: false
 ---
 
 I had a fairly decent sleep, and woke up to... a Quinn's head in between my bedroom door and the bathroom door.  I had to carefully step over it a few times to get in between the two rooms.  I showered, and quietly ate some breakfast.
