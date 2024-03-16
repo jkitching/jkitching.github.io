@@ -33,8 +33,8 @@ pygmentsUseClasses = true
     weight = 50
 
 [permalinks]
-  amazon = "/:title/"
-  posts = "/:title/"
+  amazon = "/amazon/:filename/"
+  posts = "/writing/:filename/"
 
 [markup.goldmark.renderer]
   # Allows HTML in Markdown
