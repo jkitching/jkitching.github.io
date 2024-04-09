@@ -1,0 +1,24 @@
+<!doctype html><html lang=en><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="Joel Kitching"><link rel="shortcut icon" href=https://joelkitching.com/favicon.ico><link rel=stylesheet href=/css/style.min.css><link rel=canonical href=https://joelkitching.com/writing/git-clean-deployment-hook/><title>The power of git clean in a deployment hook</title></head><body><header id=banner><h2><a href=https://joelkitching.com/>Joel Kitching</a></h2><nav><ul><li><a href=/ title>writing</a></li><li><a href=/about/ title>about</a></li><li><a href=https://github.com/jkitching title>github</a></li><li><a href=https://www.linkedin.com/in/joelkitching title>linkedin</a></li></ul></nav></header><main id=content><article><header id=post-header><h1>The power of git clean in a deployment hook</h1><div><time>April 9, 2024</time></div></header><p>A typical post-receive hook for updating a target directory based on the most recent commit might look like this:</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl><span class=cp>#!/bin/bash
+</span></span></span><span class=line><span class=cl><span class=cp></span>
+</span></span><span class=line><span class=cl><span class=nb>export</span> <span class=nv>GIT_WORK_TREE</span><span class=o>=</span><span class=s2>&#34;../myproject&#34;</span>
+</span></span><span class=line><span class=cl>git checkout -f master
+</span></span></code></pre></div><p>However, this does not remove any untracked files or directories in <code>../myproject</code>. When files are removed or renamed in later commits, their remnants will remain untouched in the deployment directory. How can we get rid of them?</p><p>Enter <code>git clean</code>! Remove all untracked files and directories like so.</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl>git clean -fd
+</span></span><span class=line><span class=cl><span class=c1># -f forces removal of files without prompting</span>
+</span></span><span class=line><span class=cl><span class=c1>#    or disabling config variable `clean.requireForce`</span>
+</span></span><span class=line><span class=cl><span class=c1># -d recurses into untracked directories</span>
+</span></span></code></pre></div><p>But what about all of those extra runtime files like databases and logs&mdash;how do we avoid deleting them? The strategy taken here is to add these files to <code>.gitignore</code>. <code>git clean</code> ignores these files by default.</p><p>The other tricky point is that <code>git checkout</code> should be run before <code>git clean</code> in order to ensure an up-to-date <code>.gitignore</code>. Otherwise, runtime files we later remember to add to <code>.gitignore</code> may be deleted before <code>.gitignore</code> gets updated.</p><p>Here&rsquo;s what the final hook looks like:</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl><span class=cp>#!/bin/bash
+</span></span></span><span class=line><span class=cl><span class=cp></span>
+</span></span><span class=line><span class=cl><span class=c1># Enable immediate exit on error</span>
+</span></span><span class=line><span class=cl><span class=nb>set</span> -e
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Set git directories</span>
+</span></span><span class=line><span class=cl><span class=nb>export</span> <span class=nv>GIT_WORK_TREE</span><span class=o>=</span><span class=s2>&#34;../myproject&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Checkout all files in the target directory to match the repository</span>
+</span></span><span class=line><span class=cl><span class=c1># Must update .gitignore before running `git clean`</span>
+</span></span><span class=line><span class=cl>git -c advice.detachedHead<span class=o>=</span><span class=nb>false</span> checkout -f refs/heads/master
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Clean untracked files and directories in the target directory</span>
+</span></span><span class=line><span class=cl><span class=c1># Do not remove files which are listed within .gitignore</span>
+</span></span><span class=line><span class=cl>git clean -fd
+</span></span></code></pre></div></article></main><footer id=footer>Copyright © 2022–2024 Joel Isaac Stewart Davies-Kitching</footer></body></html>
