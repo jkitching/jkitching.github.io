@@ -4,7 +4,7 @@ date: 2024-04-10
 ---
 In larger applications, there is usually a CI/CD process, which tests, builds, and deploys new versions of the software.
 
-Smaller applications typically start out with a simpler solution.  In this case, I have an application running in a `screen` session, and I want a git `post-receive` hook to automatically [update its code]({{< ref "restart-process-on-signal" >}}) and restart the process.
+Smaller applications typically start out with a simpler solution.  In this case, I have an application running in a `screen` session, and I want a git `post-receive` hook to automatically [update its code]({{< ref "git-clean-deployment-hook" >}}) and restart the process.
 
 **Is it possible to write a one-line Bash wrapper which restarts the application when a specific signal is received?** [TL;DR: Yes, it is possible.](#using-exec-as-a-one-liner)
 
