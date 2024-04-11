@@ -1,5 +1,5 @@
 ---
-title: "The power of git clean in a deployment hook"
+title: "Using git clean in a deployment hook"
 date: 2024-04-09
 ---
 
