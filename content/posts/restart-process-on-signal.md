@@ -141,7 +141,6 @@ while [ "$sighup" -eq 1 ]; do
     echo restarting
     sleep inf &
     pid=$!
-    kill=0
     trap 'sighup=1' HUP
     wait $pid
     trap '' HUP
@@ -160,7 +159,11 @@ bash: warning: run_pending_traps: bad value in trap_list[1]: 0x1
 
 But there is no segfault.  Rejoice---this is our most stable version so far!
 
-# Replacing wrapper with exec
+There is actually one more potential issue which exists in this solution and the recursive solution.  If the wrapper process is killed in between starting the application and recording its PID (`sleep inf & pid=$!`), the child process will continue.  I have not been able to reproduce this behaviour without inserting a pause in between these two commands, but I have also not proven that it cannot occur.
+
+This is a useful and viable version to use, but let's also explore one more option.
+
+# Replacing wrapper using exec
 
 This strategy replaces the running process with another by using `exec`.  It unfortunately requires running the script as a file.  [Or does it?  Heh heh heh...](#using-exec-as-a-one-liner)
 
@@ -186,16 +189,18 @@ I am going to cut this journey short and say that I tried every possible permuta
 ```sh
 #!/bin/bash
 
-echo restarting
+trap 'pkill -P $$' EXIT
 pkill -P $$
 pidwait -P $$
-trap 'pkill -P $$' EXIT
+echo restarting
 sleep inf &
 trap 'exec "$0" "$@"' URG
 wait $!
 ```
 
-And we are done!  Perhaps this is cheating, since we are not keeping track of the PID.  But I am not too concerned, as long as it works reliably.
+This is the version that worked the best, with one small caveat: if the wrapper is killed before the `EXIT` trap is installed, the application process will continue running.
+
+If this is a concern for you, consider using the infinite loop approach instead.  If you would like to play with quines, read onward!
 
 # Using exec as a one-liner
 
@@ -216,8 +221,9 @@ This `$program`, once invoked, will respawn itself indefinitely.  Or rather, unt
 Behold!  It really does respawn indefinitely.  Pretty neat, huh?  Now we shove everything from our script above into the string, and we get:
 
 ```sh
-( export wrapper="echo restarting; pkill -P \$\$; pidwait -P \$\$;
-  trap 'pkill -P \$\$' EXIT; sleep inf &
+( export wrapper="trap 'pkill -P \$\$' EXIT;
+  pkill -P \$\$; pidwait -P \$\$;
+  echo restarting; sleep inf &
   trap 'exec bash -c \"\$wrapper\"' URG;
   wait \$!"; exec bash -c "$wrapper" )
 ```
@@ -231,8 +237,9 @@ Up until now, we have swept the problem of identifying the wrapper PID under the
 There are two options here.  The first is to save the wrapper's PID in a file:
 
 ```sh
-( export wrapper="echo restarting; pkill -P \$\$; pidwait -P \$\$;
-  trap 'pkill -P \$\$' EXIT; sleep inf &
+( export wrapper="trap 'pkill -P \$\$' EXIT;
+  pkill -P \$\$; pidwait -P \$\$;
+  echo restarting; sleep inf &
   trap 'exec bash -c \"\$wrapper\"' URG;
   wait \$!"; exec bash -c "echo \$\$ > wrapper.pid; $wrapper" ); rm wrapper.pid
 
@@ -243,13 +250,77 @@ kill -URG $(cat wrapper.pid)
 The second is to assign a custom name to the process, which `exec` conveniently provides as the `-a` option:
 
 ```sh
-( export wrapper="echo restarting; pkill -P \$\$; pidwait -P \$\$;
-  trap 'pkill -P \$\$' EXIT; sleep inf &
+( export wrapper="trap 'pkill -P \$\$' EXIT;
+  pkill -P \$\$; pidwait -P \$\$;
+  echo restarting; sleep inf &
   trap 'exec -a app_wrapper bash -c \"\$wrapper\"' URG;
   wait \$!"; exec -a app_wrapper bash -c "$wrapper" )
 
 # Ask wrapper to restart the application:
 pkill -f -URG app_wrapper
+```
+
+# Caveat
+
+If you have made it this far, you may have tried replacing `sleep inf` with a script or a function.  It's remarkably hard to reliably kill all subprocesses when a parent process is killed.  Consider this example:
+
+```sh
+$ { sleep 100; echo done; } &
+[1] 688046
+$ kill 688046
+$ ps ax | grep 'sleep 100'
+ 688047 pts/10   S      0:00 sleep 100
+```
+
+To deal this complexity, consider simply killing the entire process group (like Ctrl+C does): `kill -- -process_group` (note the extra dash).  If you would like to deal with this directly from the wrapper, `set -m` might be helpful.  It temporarily enables Bash jobs control, which causes every child process to be created in its own separate process group.
+
+For example, modifying the infinite loop version of the wrapper to handle creating process groups might look like this:
+
+```sh
+pid=
+sighup=1
+trap 'kill $pid 2>/dev/null' EXIT
+while [ "$sighup" -eq 1 ]; do
+    sighup=0
+    echo restarting
+    set -m
+    sleep inf &
+    set +m
+    pid=$!
+    trap 'sighup=1' HUP
+    wait $pid
+    trap '' HUP
+    kill -- -$pid 2>/dev/null
+    wait $pid
+done
+```
+
+Modifying the exec approach might look like this:
+
+```sh
+#!/bin/bash
+
+trap 'pgrep -P $$ | xargs -I {} kill -- '-{}' 2>/dev/null' EXIT
+pgrep -P $$ | xargs -I {} kill -- '-{}' 2>/dev/null
+pidwait -P $$
+echo restarting
+set -m
+sleep inf &
+set +m
+trap 'exec "$0" "$@"' URG
+wait $!
+```
+
+Or, keep that complexity in your application function/script:
+
+```sh
+target() (
+    trap 'kill -- -$pid 2>/dev/null' EXIT
+    set -m
+    sleep inf &
+    pid=$!
+    wait $pid
+)
 ```
 
 # Addendum
