@@ -1,4 +1,48 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Categories on Joel Kitching</title><link>https://joelkitching.com/categories/</link><description>Recent content in Categories on Joel Kitching</description><generator>Hugo -- gohugo.io</generator><language>en-US</language><atom:link href="https://joelkitching.com/categories/index.xml" rel="self" type="application/rss+xml"/><item><title>Restarting a process when a signal is received</title><link>https://joelkitching.com/writing/restart-process-on-signal/</link><pubDate>Wed, 10 Apr 2024 00:00:00 +0000</pubDate><guid>https://joelkitching.com/writing/restart-process-on-signal/</guid><description>&lt;p>In larger applications, there is usually a CI/CD process, which tests, builds, and deploys new versions of the software.&lt;/p>
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Categories on Joel Kitching</title><link>https://joelkitching.com/categories/</link><description>Recent content in Categories on Joel Kitching</description><generator>Hugo -- gohugo.io</generator><language>en-US</language><atom:link href="https://joelkitching.com/categories/index.xml" rel="self" type="application/rss+xml"/><item><title>Convert iPhone Live Photo to Google Photos motion photo</title><link>https://joelkitching.com/writing/create-google-photos-motion-photo/</link><pubDate>Mon, 27 May 2024 00:00:00 +0000</pubDate><guid>https://joelkitching.com/writing/create-google-photos-motion-photo/</guid><description>&lt;p>Google Photos has two methods of handling motion photos:&lt;/p>
+&lt;ol>
+&lt;li>
+&lt;p>If the photo was uploaded by an Android device, it will already be in Google&amp;rsquo;s custom format, which is essentially a JPEG file with a video file concatenated to the end.&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>If the photo was uploaded by an iPhone, it will be stored as two separate files on Google servers: HEIC and MOV.&lt;/p>
+&lt;/li>
+&lt;/ol>
+&lt;p>When downloading motion photos and re-uploading them to a different Google Photos account, the Android case works fine, since everything is packed together as one file. In the iPhone case, however, you will end up uploading the HEIC and MOV files separately, which will not be recognized by Google Photos as a motion photo, and will instead displayed as two separate entities. What&amp;rsquo;s the solution?&lt;/p>
+&lt;h1 id="script-for-creating-a-motion-photo">Script for creating a motion photo&lt;/h1>
+&lt;p>Download script from GitHub: &lt;a href="https://gist.github.com/jkitching/3fa5a0c238fa825278db83acd05d7742">combine_photo_video.sh&lt;/a>&lt;/p>
+&lt;p>This script takes a photo file and a video file, and combines the two into the format recognized by Google Photos. It depends on &lt;a href="https://exiftool.org/">exiftool&lt;/a> for adding the XMP block.&lt;/p>
+&lt;p>Simply run the script with three arguments:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">./combine_photo_video.sh &amp;lt;photo_file&amp;gt; &amp;lt;video_file&amp;gt; &amp;lt;output_file&amp;gt;
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># For example, combine IMG_9077.heic and IMG_9077.mov:&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">./combine_photo_video.sh IMG_9077.heic IMG_9077.mov IMG_9077_motion.jpg
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Upload the resulting file to Google Photos (either through the app or web version), and you will get a motion photo!&lt;/p>
+&lt;h1 id="technical-explanation">Technical explanation&lt;/h1>
+&lt;p>Motion photo JPEG files have an extra XMP block. There are &lt;a href="https://linuxreviews.org/Google_Pixel_%22Motion_Photo%22">two different versions in use&lt;/a>. The newer one has the advantage of assuming the client will locate the video file on its own, and appears to work even when specifying the video file length as &amp;ldquo;0&amp;rdquo;:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-xml" data-lang="xml">&lt;span class="line">&lt;span class="cl">&lt;span class="nt">&amp;lt;Container:Directory&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;rdf:Seq&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;rdf:li&lt;/span> &lt;span class="na">rdf:parseType=&lt;/span>&lt;span class="s">&amp;#34;Resource&amp;#34;&lt;/span>&lt;span class="nt">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;Container:Item&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="na">Item:Mime=&lt;/span>&lt;span class="s">&amp;#34;image/jpeg&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="na">Item:Semantic=&lt;/span>&lt;span class="s">&amp;#34;Primary&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="na">Item:Length=&lt;/span>&lt;span class="s">&amp;#34;0&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="na">Item:Padding=&lt;/span>&lt;span class="s">&amp;#34;0&amp;#34;&lt;/span>&lt;span class="nt">/&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;/rdf:li&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;rdf:li&lt;/span> &lt;span class="na">rdf:parseType=&lt;/span>&lt;span class="s">&amp;#34;Resource&amp;#34;&lt;/span>&lt;span class="nt">&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;Container:Item&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="na">Item:Mime=&lt;/span>&lt;span class="s">&amp;#34;video/mp4&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="na">Item:Semantic=&lt;/span>&lt;span class="s">&amp;#34;MotionPhoto&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="na">Item:Length=&lt;/span>&lt;span class="s">&amp;#34;0&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="na">Item:Padding=&lt;/span>&lt;span class="s">&amp;#34;0&amp;#34;&lt;/span>&lt;span class="nt">/&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;/rdf:li&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nt">&amp;lt;/rdf:Seq&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nt">&amp;lt;/Container:Directory&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>More about the actual code for parsing and extracting video data here: &lt;a href="https://gitlab.gnome.org/GNOME/shotwell/-/issues/233#note_1712445">shotwell issue 233&lt;/a>.&lt;/p>
+&lt;h1 id="limitations">Limitations&lt;/h1>
+&lt;ul>
+&lt;li>Unfortunately, HEIC files need to be converted to JPEG as part of this process.&lt;/li>
+&lt;li>Existing XMP data is wiped out as part of this process. But it is unlikely that it exists anyways, unless the image file has been edited with Adobe products.&lt;/li>
+&lt;/ul></description></item><item><title>Restarting a process when a signal is received</title><link>https://joelkitching.com/writing/restart-process-on-signal/</link><pubDate>Wed, 10 Apr 2024 00:00:00 +0000</pubDate><guid>https://joelkitching.com/writing/restart-process-on-signal/</guid><description>&lt;p>In larger applications, there is usually a CI/CD process, which tests, builds, and deploys new versions of the software.&lt;/p>
 &lt;p>Smaller applications typically start out with a simpler solution. In this case, I have an application running in a &lt;code>screen&lt;/code> session, and I want a git &lt;code>post-receive&lt;/code> hook to automatically &lt;a href="https://joelkitching.com/writing/git-clean-deployment-hook/">update its code&lt;/a> and restart the process.&lt;/p>
 &lt;p>&lt;strong>Is it possible to write a one-line Bash wrapper which restarts the application when a specific signal is received?&lt;/strong> &lt;a href="#using-exec-as-a-one-liner">TL;DR: Yes, it is possible.&lt;/a>&lt;/p>
 &lt;p>This particular application is not thoroughly robust yet, so I do not want to restart it when the process exits on its own. Thus we have the following requirements:&lt;/p>
