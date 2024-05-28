@@ -1,4 +1,41 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Categories on Joel Kitching</title><link>https://joelkitching.com/categories/</link><description>Recent content in Categories on Joel Kitching</description><generator>Hugo -- gohugo.io</generator><language>en-US</language><atom:link href="https://joelkitching.com/categories/index.xml" rel="self" type="application/rss+xml"/><item><title>Convert iPhone Live Photo to Google Photos motion photo</title><link>https://joelkitching.com/writing/create-google-photos-motion-photo/</link><pubDate>Mon, 27 May 2024 00:00:00 +0000</pubDate><guid>https://joelkitching.com/writing/create-google-photos-motion-photo/</guid><description>&lt;p>Google Photos has two methods of handling motion photos:&lt;/p>
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Categories on Joel Kitching</title><link>https://joelkitching.com/categories/</link><description>Recent content in Categories on Joel Kitching</description><generator>Hugo -- gohugo.io</generator><language>en-US</language><atom:link href="https://joelkitching.com/categories/index.xml" rel="self" type="application/rss+xml"/><item><title>Installing Magisk and LSPosed on emulated Android</title><link>https://joelkitching.com/writing/installing_magisk_lsposed_on_emulated_android/</link><pubDate>Tue, 28 May 2024 00:00:00 +0000</pubDate><guid>https://joelkitching.com/writing/installing_magisk_lsposed_on_emulated_android/</guid><description>&lt;p>After attempting many different ways of getting Magisk to run on Android emulators (including Waydroid and the like), the only way that worked is using the official emulator from Google, along with the instructions from the following Gist:&lt;/p>
+&lt;p>&lt;a href="https://gist.github.com/tothi/1a206791c8b77d7e42015183c980657e">tothi/magisk_ramdisk_patch_avd.sh&lt;/a>&lt;/p>
+&lt;h1 id="notes">Notes&lt;/h1>
+&lt;ul>
+&lt;li>
+&lt;p>&lt;code>userdata.img&lt;/code> needs to be recreated when changing size via the &lt;code>emulator -memory&lt;/code> flag, so pick its size carefully! 8 GB can fill up very quickly.&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>I placed &lt;code>ramdisk-patched.img&lt;/code> in &lt;code>~/.android/avd/android14-play.avd/&lt;/code> to keep it alongside other files for this AVD.&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>You may want to avoid using snapshots while getting your AVD setup, but they can be useful later on.&lt;/p>
+&lt;/li>
+&lt;/ul>
+&lt;p>Here are the command-line flags I use to start the emulator:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">emulator @android14-play -memory &lt;span class="m">16384&lt;/span> -cores &lt;span class="m">8&lt;/span> -no-audio -feature -Vulkan -gpu host -ramdisk ~/.android/avd/android14-play.avd/ramdisk-patched.img
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h1 id="userspace-installation">Userspace installation&lt;/h1>
+&lt;p>After getting the emulated device up and running with a patched &lt;code>ramdisk.img&lt;/code>, finish setting up Magisk as follows:&lt;/p>
+&lt;ol>
+&lt;li>
+&lt;p>Install Magisk by sideloading the APK: &lt;code>adb install Magisk-v27.0.apk&lt;/code>. See the &lt;a href="https://github.com/topjohnwu/Magisk/releases/">GitHub releases page&lt;/a>.&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>Open up Magisk. (Note that the app may not show up in the apps list until Android initial setup has completed.) Follow the prompt requesting for a reboot to perform &amp;ldquo;additional setup&amp;rdquo;.&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>Copy the LSPosed zygisk ZIP over to the device: &lt;code>adb push LSPosed-v1.9.2-7024-zygisk-release.zip /sdcard/Download/&lt;/code>. LSPosed is no longer under development, so download the &lt;a href="https://github.com/LSPosed/LSPosed/releases/download/v1.9.2/">last available release&lt;/a> from GitHub.&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>Open up Magisk and select the Modules tab. Choose &amp;ldquo;Install from storage&amp;rdquo; and select the LSPosed ZIP file. After installing, you will be prompted to reboot again.&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>After rebooting, you should have a silent notification &amp;ldquo;LSPosed loaded&amp;rdquo;. Tap to open the LSPosed interface, and choose whether you want to add an app shortcut.&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>Now you can search for modules in the &amp;ldquo;Repository&amp;rdquo; tab and install them!&lt;/p>
+&lt;/li>
+&lt;/ol></description></item><item><title>Convert iPhone Live Photo to Google Photos motion photo</title><link>https://joelkitching.com/writing/create-google-photos-motion-photo/</link><pubDate>Mon, 27 May 2024 00:00:00 +0000</pubDate><guid>https://joelkitching.com/writing/create-google-photos-motion-photo/</guid><description>&lt;p>Google Photos has two methods of handling motion photos:&lt;/p>
 &lt;ol>
 &lt;li>
 &lt;p>If the photo was uploaded by an Android device, it will already be in Google&amp;rsquo;s custom format, which is essentially a JPEG file with a video file concatenated to the end.&lt;/p>
