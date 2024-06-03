@@ -4,6 +4,7 @@ languageCode = "en-US"
 enableInlineShortcodes = true
 pygmentsCodeFences = true
 pygmentsUseClasses = true
+timeZone = "Asia/Taipei"
 
 [params]
   description = "Joel Kitching"
