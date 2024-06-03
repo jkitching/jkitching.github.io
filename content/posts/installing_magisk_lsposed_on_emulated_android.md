@@ -16,7 +16,13 @@ After attempting many different ways of getting Magisk to run on Android emulato
 
 Here are the command-line flags I use to start the emulator:
 ```sh
-emulator @android14-play -memory 16384 -cores 8 -no-audio -feature -Vulkan -gpu host -ramdisk ~/.android/avd/android14-play.avd/ramdisk-patched.img
+emulator @android14-play \
+    -memory 16384 \
+    -cores 8 \
+    -no-audio \
+    -feature -Vulkan \
+    -gpu host \
+    -ramdisk ~/.android/avd/android14-play.avd/ramdisk-patched.img
 ```
 
 # Userspace installation
