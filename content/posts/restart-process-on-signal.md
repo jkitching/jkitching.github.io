@@ -2,6 +2,7 @@
 title: "Restarting a process when a signal is received"
 date: 2024-04-10
 ---
+
 In larger applications, there is usually a CI/CD process, which tests, builds, and deploys new versions of the software.
 
 Smaller applications typically start out with a simpler solution.  In this case, I have an application running in a `screen` session, and I want a git `post-receive` hook to automatically [update its code]({{< ref "git-clean-deployment-hook" >}}) and restart the process.

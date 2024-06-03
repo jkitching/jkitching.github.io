@@ -2,6 +2,7 @@
 title: "Convert iPhone Live Photo to Google Photos motion photo"
 date: 2024-05-27
 ---
+
 Google Photos has two methods of handling motion photos:
 
 1. If the photo was uploaded by an Android device, it will already be in Google's custom format, which is essentially a JPEG file with a video file concatenated to the end.

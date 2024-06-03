@@ -2,6 +2,7 @@
 title: "Printable HTML/CSS template for resume"
 date: 2024-06-02
 ---
+
 The resume I used for the majority of my life is a relic from university times, when I joined the Computer Science co-op program and applied for oodles of internship placements.  Back in the day, I designed the layout in Microsoft Word, with careful formatting constructed of tables, blank lines with font size 1, and painstakingly adjusted margins.  Word ran great with wine, and I even had a shell script set up to open a document and print it as PDF.
 
 # Comparison of authoring software

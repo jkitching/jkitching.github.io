@@ -2,6 +2,7 @@
 title: "Motion photos not recognized by Google Photos in shared albums"
 date: 2024-02-27
 ---
+
 After adding a motion photo into a shared album, Google Photos *sometimes* fails to show the triangular ▶ play button.
 
 Right from the horse's mouth:

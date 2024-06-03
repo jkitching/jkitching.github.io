@@ -2,6 +2,7 @@
 title: "Installing Magisk and LSPosed on emulated Android"
 date: 2024-05-28
 ---
+
 After attempting many different ways of getting Magisk to run on Android emulators (including Waydroid and the like), the only way that worked is using the official emulator from Google, along with the instructions from the following Gist:
 
 [tothi/magisk_ramdisk_patch_avd.sh](https://gist.github.com/tothi/1a206791c8b77d7e42015183c980657e)
