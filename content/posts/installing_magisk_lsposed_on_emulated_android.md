@@ -19,12 +19,13 @@ Here are the command-line flags I use to start the emulator:
 ```sh
 emulator @android14-play \
     -memory 16384 \
-    -cores 8 \
     -no-audio \
     -feature -Vulkan \
     -gpu host \
     -ramdisk ~/.android/avd/android14-play.avd/ramdisk-patched.img
 ```
+
+**Note:** I used to specify the number of emulated CPU cores like so: `-cores 8`.  But for whatever reason, this breaks snapshot functionality.
 
 # Userspace installation
 
