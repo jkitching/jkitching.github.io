@@ -9,20 +9,21 @@ After attempting many different ways of getting Magisk to run on Android emulato
 
 # Notes
 
-* `userdata.img` needs to be recreated when changing size via the `emulator -memory` flag, so pick its size carefully!  8 GB can fill up very quickly.
+* `userdata.img` needs to be recreated when changing size via the `emulator -partition-size` flag, so pick its size carefully!  The default size of 6 GB can fill up very quickly.
 
-* I placed `ramdisk-patched.img` in `~/.android/avd/android14-play.avd/` to keep it alongside other files for this AVD.
+* I placed `ramdisk-patched.img` in `~/.android/avd/android12-play.avd/` to keep it alongside other files for this AVD.
 
 * You may want to avoid using snapshots while getting your AVD setup, but they can be useful later on.
 
 Here are the command-line flags I use to start the emulator:
 ```sh
-emulator @android14-play \
-    -memory 16384 \
+emulator @android12-play \
+    -partition-size 16384 \
+    -memory 8192 \
     -no-audio \
     -feature -Vulkan \
     -gpu host \
-    -ramdisk ~/.android/avd/android14-play.avd/ramdisk-patched.img
+    -ramdisk ~/.android/avd/android12-play.avd/ramdisk-patched.img
 ```
 
 **Note:** I used to specify the number of emulated CPU cores like so: `-cores 8`.  But for whatever reason, this breaks snapshot functionality.
