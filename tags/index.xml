@@ -442,7 +442,7 @@
 &lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>&lt;code>jq&lt;/code>&amp;rsquo;s &lt;code>-c&lt;/code> flag ensures that the matching object is printed on one line. The matching case no longer redirects to &lt;code>/dev/null&lt;/code> since we want the output, and the &lt;code>!&lt;/code> negation in the short-circuit case results in using a logical &lt;code>||&lt;/code> instead of &lt;code>&amp;amp;&amp;amp;&lt;/code>.&lt;/p></description></item><item><title>Running SQL queries on CSV data</title><link>https://joelkitching.com/writing/sql-queries-on-csv/</link><pubDate>Sat, 16 Mar 2024 00:00:00 +0800</pubDate><guid>https://joelkitching.com/writing/sql-queries-on-csv/</guid><description>&lt;p>I was recently working with some CSV files pulled from a Samsung Health dump. I wanted to run a few queries on the data in order to familiarize myself with their format and contents. SQL seemed like a natural choice, and it turns out there is a myriad of different ways to directly query CSV data with SQL.&lt;/p>
 &lt;p>A few notes:&lt;/p>
 &lt;ul>
-&lt;li>The first two lines of the file is extraneous information that Samsung Health includes for its own purposes. Hence the &lt;code>tail -n +2&lt;/code> command.&lt;/li>
+&lt;li>The first line of the file is extraneous information that Samsung Health includes for its own purposes. Hence the &lt;code>tail -n +2&lt;/code> command.&lt;/li>
 &lt;li>It turns out that there is one more header value than in the data rows themselves. Some of these tools are not particularly happy about this, and so the &lt;code>sed&lt;/code> command removes the very last (empty) header value.&lt;/li>
 &lt;/ul>
 &lt;h1 id="q">q&lt;/h1>
@@ -909,84 +909,84 @@
 &lt;table>
 &lt;thead>
 &lt;tr>
-&lt;th style="text-align: left">Fedora version&lt;/th>
-&lt;th style="text-align: left">GNOME version&lt;/th>
-&lt;th style="text-align: left">&lt;/th>
-&lt;th style="text-align: left">&lt;/th>
+&lt;th>Fedora version&lt;/th>
+&lt;th>GNOME version&lt;/th>
+&lt;th>&lt;/th>
+&lt;th>&lt;/th>
 &lt;/tr>
 &lt;/thead>
 &lt;tbody>
 &lt;tr>
-&lt;td style="text-align: left">38&lt;/td>
-&lt;td style="text-align: left">43.1&lt;/td>
-&lt;td style="text-align: left">§&lt;/td>
-&lt;td style="text-align: left">&lt;/td>
+&lt;td>38&lt;/td>
+&lt;td>43.1&lt;/td>
+&lt;td>§&lt;/td>
+&lt;td>&lt;/td>
 &lt;/tr>
 &lt;tr>
-&lt;td style="text-align: left">36&lt;/td>
-&lt;td style="text-align: left">42.4&lt;/td>
-&lt;td style="text-align: left">&lt;/td>
-&lt;td style="text-align: left">&lt;/td>
+&lt;td>36&lt;/td>
+&lt;td>42.4&lt;/td>
+&lt;td>&lt;/td>
+&lt;td>&lt;/td>
 &lt;/tr>
 &lt;tr>
-&lt;td style="text-align: left">35&lt;/td>
-&lt;td style="text-align: left">41.6&lt;/td>
-&lt;td style="text-align: left">&lt;/td>
-&lt;td style="text-align: left">&lt;/td>
+&lt;td>35&lt;/td>
+&lt;td>41.6&lt;/td>
+&lt;td>&lt;/td>
+&lt;td>&lt;/td>
 &lt;/tr>
 &lt;tr>
-&lt;td style="text-align: left">34&lt;/td>
-&lt;td style="text-align: left">40.9&lt;/td>
-&lt;td style="text-align: left">&lt;/td>
-&lt;td style="text-align: left">&lt;/td>
+&lt;td>34&lt;/td>
+&lt;td>40.9&lt;/td>
+&lt;td>&lt;/td>
+&lt;td>&lt;/td>
 &lt;/tr>
 &lt;tr>
-&lt;td style="text-align: left">33&lt;/td>
-&lt;td style="text-align: left">3.38.5&lt;/td>
-&lt;td style="text-align: left">&lt;/td>
-&lt;td style="text-align: left">&lt;/td>
+&lt;td>33&lt;/td>
+&lt;td>3.38.5&lt;/td>
+&lt;td>&lt;/td>
+&lt;td>&lt;/td>
 &lt;/tr>
 &lt;tr>
-&lt;td style="text-align: left">32&lt;/td>
-&lt;td style="text-align: left">3.36.9&lt;/td>
-&lt;td style="text-align: left">&lt;/td>
-&lt;td style="text-align: left">&lt;/td>
+&lt;td>32&lt;/td>
+&lt;td>3.36.9&lt;/td>
+&lt;td>&lt;/td>
+&lt;td>&lt;/td>
 &lt;/tr>
 &lt;tr>
-&lt;td style="text-align: left">31&lt;/td>
-&lt;td style="text-align: left">3.34.8&lt;/td>
-&lt;td style="text-align: left">Δ&lt;/td>
-&lt;td style="text-align: left">†&lt;/td>
+&lt;td>31&lt;/td>
+&lt;td>3.34.8&lt;/td>
+&lt;td>Δ&lt;/td>
+&lt;td>†&lt;/td>
 &lt;/tr>
 &lt;tr>
-&lt;td style="text-align: left">30&lt;/td>
-&lt;td style="text-align: left">3.32.2&lt;/td>
-&lt;td style="text-align: left">Δ&lt;/td>
-&lt;td style="text-align: left">&lt;/td>
+&lt;td>30&lt;/td>
+&lt;td>3.32.2&lt;/td>
+&lt;td>Δ&lt;/td>
+&lt;td>&lt;/td>
 &lt;/tr>
 &lt;tr>
-&lt;td style="text-align: left">29&lt;/td>
-&lt;td style="text-align: left">3.30.2&lt;/td>
-&lt;td style="text-align: left">Δ&lt;/td>
-&lt;td style="text-align: left">‡&lt;/td>
+&lt;td>29&lt;/td>
+&lt;td>3.30.2&lt;/td>
+&lt;td>Δ&lt;/td>
+&lt;td>‡&lt;/td>
 &lt;/tr>
 &lt;tr>
-&lt;td style="text-align: left">28&lt;/td>
-&lt;td style="text-align: left">3.28.2&lt;/td>
-&lt;td style="text-align: left">Δ&lt;/td>
-&lt;td style="text-align: left">&lt;/td>
+&lt;td>28&lt;/td>
+&lt;td>3.28.2&lt;/td>
+&lt;td>Δ&lt;/td>
+&lt;td>&lt;/td>
 &lt;/tr>
 &lt;tr>
-&lt;td style="text-align: left">27&lt;/td>
-&lt;td style="text-align: left">3.26.2&lt;/td>
-&lt;td style="text-align: left">Δ&lt;/td>
-&lt;td style="text-align: left">&lt;/td>
+&lt;td>27&lt;/td>
+&lt;td>3.26.2&lt;/td>
+&lt;td>Δ&lt;/td>
+&lt;td>&lt;/td>
 &lt;/tr>
 &lt;tr>
-&lt;td style="text-align: left">26&lt;/td>
-&lt;td style="text-align: left">3.24.2&lt;/td>
-&lt;td style="text-align: left">Δ&lt;/td>
-&lt;td style="text-align: left">&lt;/td>
+&lt;td>26&lt;/td>
+&lt;td>3.24.2&lt;/td>
+&lt;td>Δ&lt;/td>
+&lt;td>&lt;/td>
 &lt;/tr>
 &lt;/tbody>
 &lt;/table>
