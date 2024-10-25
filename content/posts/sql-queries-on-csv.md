@@ -7,7 +7,7 @@ I was recently working with some CSV files pulled from a Samsung Health dump.  I
 
 A few notes:
 
-* The first two lines of the file is extraneous information that Samsung Health includes for its own purposes.  Hence the `tail -n +2` command.
+* The first line of the file is extraneous information that Samsung Health includes for its own purposes.  Hence the `tail -n +2` command.
 * It turns out that there is one more header value than in the data rows themselves.  Some of these tools are not particularly happy about this, and so the `sed` command removes the very last (empty) header value.
 
 # q
