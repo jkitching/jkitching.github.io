@@ -6,35 +6,35 @@
 </span></span><span class=line><span class=cl>./media-item-to-albums/MEDIA_ITEM_ID.json
 </span></span><span class=line><span class=cl>./media-item-to-shared-albums/MEDIA_ITEM_ID.json
 </span></span></code></pre></div><p>Each file contains one JSON object per line. Let&rsquo;s build up the database step-by-step.</p><h1 id=retrieve-a-list-of-media-items>Retrieve a list of media items</h1><p>Save information about each media item (photo or video) into <code>media-items.json</code>.</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl>./photoslibrary1_paginated.sh <span class=se>\
-</span></span></span><span class=line><span class=cl><span class=se></span>  --target-array mediaItems <span class=se>\
-</span></span></span><span class=line><span class=cl><span class=se></span>  --command <span class=s1>&#39;media-items list&#39;</span> <span class=se>\
-</span></span></span><span class=line><span class=cl><span class=se></span>  --output-name media-items <span class=se>\
-</span></span></span><span class=line><span class=cl><span class=se></span>  --page-token-arg p
+</span></span></span><span class=line><span class=cl>  --target-array mediaItems <span class=se>\
+</span></span></span><span class=line><span class=cl>  --command <span class=s1>&#39;media-items list&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl>  --output-name media-items <span class=se>\
+</span></span></span><span class=line><span class=cl>  --page-token-arg p
 </span></span></code></pre></div><h1 id=retrieve-a-list-of-albums>Retrieve a list of albums</h1><p>Albums that <strong>you created</strong> are listed here, even if they are shared with others. Save to <code>albums.json</code>.</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl>./photoslibrary1_paginated.sh <span class=se>\
-</span></span></span><span class=line><span class=cl><span class=se></span>  --target-array albums <span class=se>\
-</span></span></span><span class=line><span class=cl><span class=se></span>  --command <span class=s1>&#39;albums list&#39;</span> <span class=se>\
-</span></span></span><span class=line><span class=cl><span class=se></span>  --output-name albums <span class=se>\
-</span></span></span><span class=line><span class=cl><span class=se></span>  --page-token-arg p
+</span></span></span><span class=line><span class=cl>  --target-array albums <span class=se>\
+</span></span></span><span class=line><span class=cl>  --command <span class=s1>&#39;albums list&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl>  --output-name albums <span class=se>\
+</span></span></span><span class=line><span class=cl>  --page-token-arg p
 </span></span></code></pre></div><h1 id=retrieve-a-list-of-shared-albums>Retrieve a list of shared albums</h1><p>Albums that <strong>others shared with you</strong> are listed here. Save to <code>shared-albums.json</code>.</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl>./photoslibrary1_paginated.sh <span class=se>\
-</span></span></span><span class=line><span class=cl><span class=se></span>  --target-array sharedAlbums <span class=se>\
-</span></span></span><span class=line><span class=cl><span class=se></span>  --command <span class=s1>&#39;shared-albums list&#39;</span> <span class=se>\
-</span></span></span><span class=line><span class=cl><span class=se></span>  --output-name shared-albums <span class=se>\
-</span></span></span><span class=line><span class=cl><span class=se></span>  --page-token-arg p
+</span></span></span><span class=line><span class=cl>  --target-array sharedAlbums <span class=se>\
+</span></span></span><span class=line><span class=cl>  --command <span class=s1>&#39;shared-albums list&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl>  --output-name shared-albums <span class=se>\
+</span></span></span><span class=line><span class=cl>  --page-token-arg p
 </span></span></code></pre></div><h1 id=retrieve-a-list-of-media-items-in-each-album>Retrieve a list of media items in each album</h1><p>For each album, retrieve a list of media items. Save to <code>albums/ALBUM_ID.json</code>.</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl>mkdir albums
 </span></span><span class=line><span class=cl><span class=k>for</span> album in <span class=sb>`</span>cat albums.json <span class=p>|</span> jq -r <span class=s1>&#39;.id&#39;</span><span class=sb>`</span><span class=p>;</span> <span class=k>do</span>
 </span></span><span class=line><span class=cl>  <span class=nb>echo</span> <span class=s2>&#34;</span><span class=nv>$album</span><span class=s2>&#34;</span>
 </span></span><span class=line><span class=cl>  ./photoslibrary1_paginated.sh <span class=se>\
-</span></span></span><span class=line><span class=cl><span class=se></span>    --target-array mediaItems <span class=se>\
-</span></span></span><span class=line><span class=cl><span class=se></span>    --command <span class=s2>&#34;media-items search -r . album-id=</span><span class=nv>$album</span><span class=s2>&#34;</span> <span class=se>\
-</span></span></span><span class=line><span class=cl><span class=se></span>    --output-name <span class=s2>&#34;albums/</span><span class=nv>$album</span><span class=s2>&#34;</span> --page-token-arg r
+</span></span></span><span class=line><span class=cl>    --target-array mediaItems <span class=se>\
+</span></span></span><span class=line><span class=cl>    --command <span class=s2>&#34;media-items search -r . album-id=</span><span class=nv>$album</span><span class=s2>&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl>    --output-name <span class=s2>&#34;albums/</span><span class=nv>$album</span><span class=s2>&#34;</span> --page-token-arg r
 </span></span><span class=line><span class=cl><span class=k>done</span>
 </span></span></code></pre></div><h1 id=retrieve-a-list-of-media-items-in-each-shared-album>Retrieve a list of media items in each shared album</h1><p>For each shared album, retrieve a list of media items. Save to <code>shared-albums/ALBUM_ID.json</code>.</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl>mkdir shared-albums
 </span></span><span class=line><span class=cl><span class=k>for</span> album in <span class=sb>`</span>cat shared-albums.json <span class=p>|</span> jq -r <span class=s1>&#39;.id&#39;</span><span class=sb>`</span><span class=p>;</span> <span class=k>do</span>
 </span></span><span class=line><span class=cl>  <span class=nb>echo</span> <span class=s2>&#34;</span><span class=nv>$album</span><span class=s2>&#34;</span>
 </span></span><span class=line><span class=cl>  ./photoslibrary1_paginated.sh <span class=se>\
-</span></span></span><span class=line><span class=cl><span class=se></span>    --target-array mediaItems <span class=se>\
-</span></span></span><span class=line><span class=cl><span class=se></span>    --command <span class=s2>&#34;media-items search -r . album-id=</span><span class=nv>$album</span><span class=s2>&#34;</span> <span class=se>\
-</span></span></span><span class=line><span class=cl><span class=se></span>    --output-name <span class=s2>&#34;shared-albums/</span><span class=nv>$album</span><span class=s2>&#34;</span> --page-token-arg r
+</span></span></span><span class=line><span class=cl>    --target-array mediaItems <span class=se>\
+</span></span></span><span class=line><span class=cl>    --command <span class=s2>&#34;media-items search -r . album-id=</span><span class=nv>$album</span><span class=s2>&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl>    --output-name <span class=s2>&#34;shared-albums/</span><span class=nv>$album</span><span class=s2>&#34;</span> --page-token-arg r
 </span></span><span class=line><span class=cl><span class=k>done</span>
 </span></span></code></pre></div><h1 id=map-media-items-to-albums-containing-them>Map media items to albums containing them</h1><p>For each media item, if one or more albums contain the media item, create a file listing those albums. Save to <code>media-item-to-albums/MEDIA_ITEM_ID.json</code>.</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl>mkdir media-item-to-albums
 </span></span><span class=line><span class=cl><span class=k>for</span> fname in albums/*.json<span class=p>;</span> <span class=k>do</span>

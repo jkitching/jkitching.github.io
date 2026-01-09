@@ -78,7 +78,7 @@
 </span></span><span class=line><span class=cl><span class=k>done</span>
 </span></span></code></pre></div><p>Note the careful order of <code>trap</code>, <code>kill</code>, <code>wait</code>.</p><p>This version results in Bash interspersing our application restarts with &ldquo;bad value&rdquo; warnings. I believe this is related to traps getting interrupted before running to completion, but I was unable to find a viable solution.</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl>bash: warning: run_pending_traps: bad value in trap_list<span class=o>[</span>1<span class=o>]</span>: 0x1
 </span></span></code></pre></div><p>But there is no segfault. Rejoice&mdash;this is our most stable version so far!</p><p>There is actually one more potential issue which exists in this solution and the recursive solution. If the wrapper process is killed in between starting the application and recording its PID (<code>sleep inf & pid=$!</code>), the child process will continue. I have not been able to reproduce this behaviour without inserting a pause in between these two commands, but I have also not proven that it cannot occur.</p><p>This is a useful and viable version to use, but let&rsquo;s also explore one more option.</p><h1 id=replacing-wrapper-using-exec>Replacing wrapper using exec</h1><p>This strategy replaces the running process with another by using <code>exec</code>. It unfortunately requires running the script as a file. <a href=#using-exec-as-a-one-liner>Or does it? Heh heh heh&mldr;</a></p><div class=highlight><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl><span class=cp>#!/bin/bash
-</span></span></span><span class=line><span class=cl><span class=cp></span>
+</span></span></span><span class=line><span class=cl>
 </span></span><span class=line><span class=cl><span class=nb>echo</span> restarting
 </span></span><span class=line><span class=cl><span class=nb>trap</span> <span class=s1>&#39;kill $pid 2&gt;/dev/null&#39;</span> EXIT
 </span></span><span class=line><span class=cl>sleep inf <span class=p>&amp;</span>
@@ -86,7 +86,7 @@
 </span></span><span class=line><span class=cl><span class=nb>trap</span> <span class=s1>&#39;kill $pid 2&gt;/dev/null; wait $pid; exec &#34;$0&#34; &#34;$@&#34;&#39;</span> HUP
 </span></span><span class=line><span class=cl><span class=nb>wait</span> <span class=nv>$pid</span>
 </span></span></code></pre></div><p>The first iteration segfaults when spammed with <code>SIGHUP</code>. Presumably traps are building up in the call stack before they finish executing until the call stack runs out of memory.</p><p>Additionally, there is a problem where if the <code>HUP</code> trap hasn&rsquo;t been installed yet, the script will just exit when it receives <code>SIGHUP</code>. That is the default behaviour of <code>SIGHUP</code>&mdash;and it is actually quite hard to find a signal <em>without</em> any default behaviour. I ended up choosing <code>SIGURG</code>:</p><blockquote><p>The operating system sends this signal to a process using a network connection when &ldquo;urgent&rdquo; out of band data is sent to it.</p></blockquote><p>I am going to cut this journey short and say that I tried every possible permutation, and none of them worked. So I turned this model on its head: let the replacement process handle killing the application before spawning a new one:</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl><span class=cp>#!/bin/bash
-</span></span></span><span class=line><span class=cl><span class=cp></span>
+</span></span></span><span class=line><span class=cl>
 </span></span><span class=line><span class=cl><span class=nb>trap</span> <span class=s1>&#39;pkill -P $$&#39;</span> EXIT
 </span></span><span class=line><span class=cl>pkill -P <span class=nv>$$</span>
 </span></span><span class=line><span class=cl>pidwait -P <span class=nv>$$</span>
@@ -139,7 +139,7 @@
 </span></span><span class=line><span class=cl>    <span class=nb>wait</span> <span class=nv>$pid</span>
 </span></span><span class=line><span class=cl><span class=k>done</span>
 </span></span></code></pre></div><p>Modifying the exec approach might look like this:</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-sh data-lang=sh><span class=line><span class=cl><span class=cp>#!/bin/bash
-</span></span></span><span class=line><span class=cl><span class=cp></span>
+</span></span></span><span class=line><span class=cl>
 </span></span><span class=line><span class=cl><span class=nb>trap</span> <span class=s1>&#39;pgrep -P $$ | xargs -I {} kill -- &#39;</span>-<span class=o>{}</span><span class=s1>&#39; 2&gt;/dev/null&#39;</span> EXIT
 </span></span><span class=line><span class=cl>pgrep -P <span class=nv>$$</span> <span class=p>|</span> xargs -I <span class=o>{}</span> <span class=nb>kill</span> -- <span class=s1>&#39;-{}&#39;</span> 2&gt;/dev/null
 </span></span><span class=line><span class=cl>pidwait -P <span class=nv>$$</span>
