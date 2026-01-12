@@ -15,3 +15,7 @@ pre code {
     padding: 0 !important;
     background: none !important;
 }
+main#content pre {
+    background-color: #272822;
+    color: #f8f8f2;
+}
