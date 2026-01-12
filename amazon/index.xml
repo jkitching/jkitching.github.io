@@ -1,4 +1,114 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Amazons on Joel Kitching</title><link>https://joelkitching.com/amazon/</link><description>Recent content in Amazons on Joel Kitching</description><generator>Hugo -- gohugo.io</generator><language>en-US</language><lastBuildDate>Fri, 13 May 2011 00:00:00 +0800</lastBuildDate><atom:link href="https://joelkitching.com/amazon/index.xml" rel="self" type="application/rss+xml"/><item><title>Arch Linux: inhibiting sleep triggered by lid switch</title><link>https://joelkitching.com/writing/arch-linux-inhibit-lid-switch-sleep/</link><pubDate>Sat, 10 Jan 2026 00:00:00 +0800</pubDate><guid>https://joelkitching.com/writing/arch-linux-inhibit-lid-switch-sleep/</guid><description>&lt;p&gt;Sometimes I want to run long jobs overnight on my laptop, or even charge my phone while the laptop is closed in my backpack (getting USB to have power when suspended is another longstanding problem).&lt;/p&gt;
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Amazons on Joel Kitching</title><link>https://joelkitching.com/amazon/</link><description>Recent content in Amazons on Joel Kitching</description><generator>Hugo -- gohugo.io</generator><language>en-US</language><lastBuildDate>Fri, 13 May 2011 00:00:00 +0800</lastBuildDate><atom:link href="https://joelkitching.com/amazon/index.xml" rel="self" type="application/rss+xml"/><item><title>Fixing Tailscale + NextDNS + systemd-resolved DNS loops on Linux</title><link>https://joelkitching.com/writing/tailscale-nextdns-systemd-resolved-dns-loop/</link><pubDate>Mon, 12 Jan 2026 00:00:00 +0800</pubDate><guid>https://joelkitching.com/writing/tailscale-nextdns-systemd-resolved-dns-loop/</guid><description>&lt;p&gt;&lt;em&gt;Disclaimer: This post was written by Claude with my direction! We&amp;rsquo;re all in the midst of recalibrating our ethical compass when it comes to programming and writing with LLMs. Since this post is intended as a reference for future me, it felt okay that I was simply a collaborator and editor.&lt;/em&gt;&lt;/p&gt;
+&lt;h2 id="tailscale-goes-wild"&gt;Tailscale goes wild&lt;/h2&gt;
+&lt;p&gt;Tailscale commands were hanging on my Arch Linux system. I wasn&amp;rsquo;t using the stub-resolv.conf symlink at the time, so I tried switching to it as a potential fix. After connecting to WiFi, the journal filled with &lt;code&gt;dns udp query: request queue full&lt;/code&gt; and DNS resolution stopped working entirely!&lt;/p&gt;
+&lt;h2 id="the-problem"&gt;The problem&lt;/h2&gt;
+&lt;p&gt;When using Tailscale with NextDNS configured in the Tailscale admin console, combined with systemd-resolved on Linux, you may encounter a DNS loop that causes complete DNS failure. The symptom is tailscaled spamming the journal with:&lt;/p&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;dns udp query: request queue full
+dns tcp query: request queue full
+[RATELIMIT] format(&amp;#34;dns udp query: %v&amp;#34;) (106 dropped)
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;The system can ping IP addresses but cannot resolve any hostnames. Killing tailscaled restores DNS.&lt;/p&gt;
+&lt;h2 id="why-it-happens"&gt;Why it happens&lt;/h2&gt;
+&lt;p&gt;The root cause is that Tailscale&amp;rsquo;s internal DNS forwarder can end up with &lt;code&gt;100.100.100.100&lt;/code&gt; (itself) in the upstream list, causing queries to loop infinitely until the queue is exhausted.&lt;/p&gt;
+&lt;h3 id="the-loop-mechanism"&gt;The loop mechanism&lt;/h3&gt;
+&lt;p&gt;Once 100.100.100.100 is in the upstream list:&lt;/p&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;Query arrives at 100.100.100.100 (Tailscale)
+→ Not a MagicDNS query, forward upstream
+→ Upstream includes 100.100.100.100
+→ Query arrives at 100.100.100.100
+→ Forward upstream...
+→ ∞
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;This exponentially floods the queue until DNS stops working entirely.&lt;/p&gt;
+&lt;h3 id="known-bugs-that-cause-this"&gt;Known bugs that cause this&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href="https://github.com/tailscale/tailscale/issues/7816"&gt;GitHub Issue #7816&lt;/a&gt;&amp;mdash;In &amp;ldquo;direct&amp;rdquo; mode, Tailscale&amp;rsquo;s resolv.conf backup can become polluted with its own address&lt;/li&gt;
+&lt;li&gt;&lt;a href="https://github.com/tailscale/tailscale/issues/4842"&gt;GitHub Issue #4842&lt;/a&gt;&amp;mdash;After network disruptions (WiFi reconnect, router reboot), Tailscale&amp;rsquo;s internal routing can misconfigure to point at itself&lt;/li&gt;
+&lt;li&gt;&lt;a href="https://github.com/tailscale/tailscale/issues/7655"&gt;GitHub Issue #7655&lt;/a&gt;&amp;mdash;Related DNS loop symptoms&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;See also: &lt;a href="https://tailscale.com/blog/sisyphean-dns-client-linux"&gt;Tailscale Blog: The Sisyphean Task of DNS Client Config on Linux&lt;/a&gt;&lt;/p&gt;
+&lt;h2 id="the-solution"&gt;The solution&lt;/h2&gt;
+&lt;p&gt;Use NextDNS directly in systemd-resolved, bypass Tailscale&amp;rsquo;s DNS override, and configure split DNS so MagicDNS still works for tailnet hostnames.&lt;/p&gt;
+&lt;h3 id="step-1-configure-nextdns-in-systemd-resolved"&gt;Step 1: Configure NextDNS in systemd-resolved&lt;/h3&gt;
+&lt;p&gt;Edit &lt;code&gt;/etc/systemd/resolved.conf&lt;/code&gt;:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-ini" data-lang="ini"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;[Resolve]&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="na"&gt;DNS&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s"&gt;45.90.28.0#YOUR-CONFIG-ID.dns.nextdns.io&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="na"&gt;DNS&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s"&gt;45.90.30.0#YOUR-CONFIG-ID.dns.nextdns.io&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="na"&gt;DNS&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s"&gt;2a07:a8c0::#YOUR-CONFIG-ID.dns.nextdns.io&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="na"&gt;DNS&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s"&gt;2a07:a8c1::#YOUR-CONFIG-ID.dns.nextdns.io&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="na"&gt;DNSOverTLS&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s"&gt;yes&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Replace &lt;code&gt;YOUR-CONFIG-ID&lt;/code&gt; with your NextDNS configuration ID (found at &lt;a href="https://my.nextdns.io"&gt;https://my.nextdns.io&lt;/a&gt;).&lt;/p&gt;
+&lt;p&gt;Restart resolved:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-bash" data-lang="bash"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo systemctl restart systemd-resolved
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id="step-2-disable-tailscale-dns-override"&gt;Step 2: Disable Tailscale DNS override&lt;/h3&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-bash" data-lang="bash"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo tailscale &lt;span class="nb"&gt;set&lt;/span&gt; --accept-dns&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="nb"&gt;false&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;This prevents Tailscale from taking over global DNS routing.&lt;/p&gt;
+&lt;h3 id="step-3-configure-split-dns-for-magicdns"&gt;Step 3: Configure split DNS for MagicDNS&lt;/h3&gt;
+&lt;p&gt;So you can still resolve tailnet hostnames like &lt;code&gt;mydevice.tail123abc.ts.net&lt;/code&gt;, configure the &lt;code&gt;tailscale0&lt;/code&gt; interface to route &lt;code&gt;.ts.net&lt;/code&gt; queries to Tailscale&amp;rsquo;s DNS. Create a NetworkManager dispatcher script to apply this on every connect:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-bash" data-lang="bash"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo tee /etc/NetworkManager/dispatcher.d/50-tailscale-dns &lt;span class="s"&gt;&amp;lt;&amp;lt; &amp;#39;EOF&amp;#39;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s"&gt;#!/bin/bash
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s"&gt;if [ &amp;#34;$1&amp;#34; = &amp;#34;tailscale0&amp;#34; ] &amp;amp;&amp;amp; [ &amp;#34;$2&amp;#34; = &amp;#34;up&amp;#34; ]; then
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s"&gt; resolvectl dns tailscale0 100.100.100.100
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s"&gt; resolvectl domain tailscale0 tail123abc.ts.net &amp;#39;~tail123abc.ts.net&amp;#39;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s"&gt;fi
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s"&gt;EOF&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo chmod +x /etc/NetworkManager/dispatcher.d/50-tailscale-dns
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Replace &lt;code&gt;tail123abc.ts.net&lt;/code&gt; with your actual tailnet domain. The &lt;code&gt;resolvectl domain&lt;/code&gt; command sets two entries:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Search domain&lt;/strong&gt; (&lt;code&gt;tail123abc.ts.net&lt;/code&gt;): &lt;code&gt;ping samsung&lt;/code&gt; expands to &lt;code&gt;ping samsung.tail123abc.ts.net&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Routing domain&lt;/strong&gt; (&lt;code&gt;~tail123abc.ts.net&lt;/code&gt;): the &lt;code&gt;~&lt;/code&gt; prefix tells resolved to send queries ending in this domain to Tailscale&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id="verification"&gt;Verification&lt;/h2&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-bash" data-lang="bash"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;# Check resolved config&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;resolvectl status
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;# Test NextDNS is working&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;# Visit https://test.nextdns.io in a browser&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;# Test MagicDNS&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;ping yourdevice.tail123abc.ts.net
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;# Or just the short name (search domain)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;ping yourdevice
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id="how-it-works"&gt;How it works&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;/etc/resolv.conf&lt;/code&gt; symlinks to systemd-resolved&amp;rsquo;s stub, so all DNS queries go through resolved.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Resolving &lt;code&gt;samsung&lt;/code&gt;:&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;samsung&lt;/code&gt; → 127.0.0.53 (resolved) → append search domain → &lt;code&gt;samsung.tail123abc.ts.net&lt;/code&gt; → routing domain match → 100.100.100.100 (Tailscale) → &lt;code&gt;100.x.y.z&lt;/code&gt;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Resolving &lt;code&gt;samsung.tail123abc.ts.net&lt;/code&gt;:&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;samsung.tail123abc.ts.net&lt;/code&gt; → 127.0.0.53 (resolved) → routing domain match → 100.100.100.100 (Tailscale) → &lt;code&gt;100.x.y.z&lt;/code&gt;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Resolving &lt;code&gt;google.com&lt;/code&gt;:&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;google.com&lt;/code&gt; → 127.0.0.53 (resolved) → no routing domain match → NextDNS via DoT → &lt;code&gt;142.250.x.x&lt;/code&gt;&lt;/p&gt;
+&lt;p&gt;Since &lt;code&gt;--accept-dns=false&lt;/code&gt; prevents Tailscale from registering as the global handler, there&amp;rsquo;s no path for 100.100.100.100 to end up in the upstream list&amp;mdash;no loop.&lt;/p&gt;
+&lt;h2 id="quick-reference"&gt;Quick reference&lt;/h2&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;Task&lt;/th&gt;
+&lt;th&gt;Command&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;Check DNS status&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;resolvectl status&lt;/code&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Test specific DNS server&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;dig @100.100.100.100 hostname&lt;/code&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Temporarily change DNS&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;sudo resolvectl dns wlan0 8.8.8.8&lt;/code&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Restart resolved&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;sudo systemctl restart systemd-resolved&lt;/code&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Check tailscale DNS mode&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;tailscale debug prefs | grep -i dns&lt;/code&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;</description></item><item><title>Arch Linux: inhibiting sleep triggered by lid switch</title><link>https://joelkitching.com/writing/arch-linux-inhibit-lid-switch-sleep/</link><pubDate>Sat, 10 Jan 2026 00:00:00 +0800</pubDate><guid>https://joelkitching.com/writing/arch-linux-inhibit-lid-switch-sleep/</guid><description>&lt;p&gt;Sometimes I want to run long jobs overnight on my laptop, or even charge my phone while the laptop is closed in my backpack (getting USB to have power when suspended is another longstanding problem).&lt;/p&gt;
 &lt;p&gt;For quite a while, I tried different variations of &lt;code&gt;gnome-session-inhibit&lt;/code&gt; and &lt;code&gt;systemd-inhibit&lt;/code&gt;. But they never worked properly!&lt;/p&gt;
 &lt;p&gt;Finally, I found this gem on the Arch Linux forum: &lt;a href="https://bbs.archlinux.org/viewtopic.php?id=216236"&gt;Systemd-inhibit doesn&amp;rsquo;t prevent sleep&lt;/a&gt;&lt;/p&gt;
 &lt;blockquote&gt;
