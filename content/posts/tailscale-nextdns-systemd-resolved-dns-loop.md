@@ -7,7 +7,7 @@ date: 2026-01-12
 
 ## Tailscale goes wild
 
-Tailscale commands were hanging on my Arch Linux system. I wasn't using the stub-resolv.conf symlink at the time, so I tried switching to it as a potential fix. After connecting to WiFi, the journal filled with `dns udp query: request queue full` and DNS resolution stopped working entirely!
+Tailscale commands were hanging on my Arch Linux system. I wasn't using the stub-resolv.conf symlink at the time, so I tried switching to it [per Tailscale's recommendation](https://tailscale.com/kb/1188/linux-dns) as a potential fix. After connecting to WiFi, the journal filled with `dns udp query: request queue full` and DNS resolution stopped working entirely!
 
 ## The problem
 
