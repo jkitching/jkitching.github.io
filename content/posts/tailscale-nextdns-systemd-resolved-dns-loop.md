@@ -83,24 +83,38 @@ This prevents Tailscale from taking over global DNS routing.
 
 ### Step 3: Configure split DNS for MagicDNS
 
-So you can still resolve tailnet hostnames like `mydevice.tail123abc.ts.net`, configure the `tailscale0` interface to route `.ts.net` queries to Tailscale's DNS. Create a NetworkManager dispatcher script to apply this on every connect:
+So you can still resolve tailnet hostnames like `mydevice.tail123abc.ts.net`, configure the `tailscale0` interface to route `.ts.net` queries to Tailscale's DNS. Create a systemd service that triggers when the interface appears:
 
 ```bash
-sudo tee /etc/NetworkManager/dispatcher.d/50-tailscale-dns << 'EOF'
-#!/bin/bash
-if [ "$1" = "tailscale0" ] && [ "$2" = "up" ]; then
-    resolvectl dns tailscale0 100.100.100.100
-    resolvectl domain tailscale0 tail123abc.ts.net '~tail123abc.ts.net'
-fi
+sudo tee /etc/systemd/system/tailscale-dns.service << 'EOF'
+[Unit]
+Description=Configure DNS routing for Tailscale MagicDNS
+After=sys-subsystem-net-devices-tailscale0.device
+BindsTo=sys-subsystem-net-devices-tailscale0.device
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/resolvectl dns tailscale0 100.100.100.100
+ExecStart=/usr/bin/resolvectl domain tailscale0 tail123abc.ts.net
+ExecStart=/usr/bin/resolvectl default-route tailscale0 false
+RemainAfterExit=yes
+
+[Install]
+WantedBy=sys-subsystem-net-devices-tailscale0.device
 EOF
 
-sudo chmod +x /etc/NetworkManager/dispatcher.d/50-tailscale-dns
+sudo systemctl daemon-reload
+sudo systemctl enable --now tailscale-dns.service
 ```
 
-Replace `tail123abc.ts.net` with your actual tailnet domain. The `resolvectl domain` command sets two entries:
+Replace `tail123abc.ts.net` with your actual tailnet domain.
 
-- **Search domain** (`tail123abc.ts.net`): `ping samsung` expands to `ping samsung.tail123abc.ts.net`
-- **Routing domain** (`~tail123abc.ts.net`): the `~` prefix tells resolved to send queries ending in this domain to Tailscale
+The domain setting serves dual purpose:
+
+- **Search domain**: `ping mydevice` expands to `ping mydevice.tail123abc.ts.net`
+- **Routing domain**: queries ending in `.tail123abc.ts.net` are sent to the interface's DNS server (100.100.100.100)
+
+The `default-route false` ensures only tailnet queries go to Tailscale's DNS---everything else goes to NextDNS
 
 ## Verification
 
@@ -112,23 +126,23 @@ resolvectl status
 # Visit https://test.nextdns.io in a browser
 
 # Test MagicDNS
-ping yourdevice.tail123abc.ts.net
+ping mydevice.tail123abc.ts.net
 
 # Or just the short name (search domain)
-ping yourdevice
+ping mydevice
 ```
 
 ## How it works
 
 `/etc/resolv.conf` symlinks to systemd-resolved's stub, so all DNS queries go through resolved.
 
-**Resolving `samsung`:**
+**Resolving `mydevice`:**
 
-`samsung` → 127.0.0.53 (resolved) → append search domain → `samsung.tail123abc.ts.net` → routing domain match → 100.100.100.100 (Tailscale) → `100.x.y.z`
+`mydevice` → 127.0.0.53 (resolved) → append search domain → `mydevice.tail123abc.ts.net` → domain match on tailscale0 → 100.100.100.100 (Tailscale) → `100.x.y.z`
 
-**Resolving `samsung.tail123abc.ts.net`:**
+**Resolving `mydevice.tail123abc.ts.net`:**
 
-`samsung.tail123abc.ts.net` → 127.0.0.53 (resolved) → routing domain match → 100.100.100.100 (Tailscale) → `100.x.y.z`
+`mydevice.tail123abc.ts.net` → 127.0.0.53 (resolved) → domain match on tailscale0 → 100.100.100.100 (Tailscale) → `100.x.y.z`
 
 **Resolving `google.com`:**
 
@@ -141,7 +155,8 @@ Since `--accept-dns=false` prevents Tailscale from registering as the global han
 | Task | Command |
 |------|---------|
 | Check DNS status | `resolvectl status` |
+| Check tailscale0 DNS config | `resolvectl status tailscale0` |
 | Test specific DNS server | `dig @100.100.100.100 hostname` |
-| Temporarily change DNS | `sudo resolvectl dns wlan0 8.8.8.8` |
 | Restart resolved | `sudo systemctl restart systemd-resolved` |
+| Restart tailscale DNS service | `sudo systemctl restart tailscale-dns` |
 | Check tailscale DNS mode | `tailscale debug prefs \| grep -i dns` |
