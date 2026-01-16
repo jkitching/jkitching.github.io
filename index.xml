@@ -1,32 +1,135 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Joel Kitching DOT com on Joel Kitching</title><link>https://joelkitching.com/</link><description>Recent content in Joel Kitching DOT com on Joel Kitching</description><generator>Hugo -- gohugo.io</generator><language>en-US</language><lastBuildDate>Mon, 12 Jan 2026 00:00:00 +0800</lastBuildDate><atom:link href="https://joelkitching.com/index.xml" rel="self" type="application/rss+xml"/><item><title>Fixing Tailscale + NextDNS + systemd-resolved DNS loops on Linux</title><link>https://joelkitching.com/writing/tailscale-nextdns-systemd-resolved-dns-loop/</link><pubDate>Mon, 12 Jan 2026 00:00:00 +0800</pubDate><guid>https://joelkitching.com/writing/tailscale-nextdns-systemd-resolved-dns-loop/</guid><description>&lt;p&gt;&lt;em&gt;Disclaimer: This post was written by Claude with my direction! We&amp;rsquo;re all in the midst of recalibrating our ethical compass when it comes to programming and writing with LLMs. Since this post is intended as a reference for future me, it felt okay that I was simply a collaborator and editor.&lt;/em&gt;&lt;/p&gt;
-&lt;h2 id="tailscale-goes-wild"&gt;Tailscale goes wild&lt;/h2&gt;
-&lt;p&gt;Tailscale commands were hanging on my Arch Linux system. I wasn&amp;rsquo;t using the stub-resolv.conf symlink at the time, so I tried switching to it &lt;a href="https://tailscale.com/kb/1188/linux-dns"&gt;per Tailscale&amp;rsquo;s recommendation&lt;/a&gt; as a potential fix. After connecting to WiFi, the journal filled with &lt;code&gt;dns udp query: request queue full&lt;/code&gt; and DNS resolution stopped working entirely!&lt;/p&gt;
-&lt;h2 id="the-problem"&gt;The problem&lt;/h2&gt;
-&lt;p&gt;When using Tailscale with NextDNS configured in the Tailscale admin console, combined with systemd-resolved on Linux, you may encounter a DNS loop that causes complete DNS failure. The symptom is tailscaled spamming the journal with:&lt;/p&gt;
-&lt;pre tabindex="0"&gt;&lt;code&gt;dns udp query: request queue full
-dns tcp query: request queue full
-[RATELIMIT] format(&amp;#34;dns udp query: %v&amp;#34;) (106 dropped)
-&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;The system can ping IP addresses but cannot resolve any hostnames. Killing tailscaled restores DNS.&lt;/p&gt;
-&lt;h2 id="why-it-happens"&gt;Why it happens&lt;/h2&gt;
-&lt;p&gt;The root cause is that Tailscale&amp;rsquo;s internal DNS forwarder can end up with &lt;code&gt;100.100.100.100&lt;/code&gt; (itself) in the upstream list, causing queries to loop infinitely until the queue is exhausted.&lt;/p&gt;
-&lt;h3 id="the-loop-mechanism"&gt;The loop mechanism&lt;/h3&gt;
-&lt;p&gt;Once 100.100.100.100 is in the upstream list:&lt;/p&gt;
-&lt;pre tabindex="0"&gt;&lt;code&gt;Query arrives at 100.100.100.100 (Tailscale)
-→ Not a MagicDNS query, forward upstream
-→ Upstream includes 100.100.100.100
-→ Query arrives at 100.100.100.100
-→ Forward upstream...
-→ ∞
-&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;This exponentially floods the queue until DNS stops working entirely.&lt;/p&gt;
-&lt;h3 id="known-bugs-that-cause-this"&gt;Known bugs that cause this&lt;/h3&gt;
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Joel Kitching DOT com on Joel Kitching</title><link>https://joelkitching.com/</link><description>Recent content in Joel Kitching DOT com on Joel Kitching</description><generator>Hugo -- gohugo.io</generator><language>en-US</language><lastBuildDate>Mon, 12 Jan 2026 00:00:00 +0800</lastBuildDate><atom:link href="https://joelkitching.com/index.xml" rel="self" type="application/rss+xml"/><item><title>Split DNS for Tailscale MagicDNS + NextDNS on Linux</title><link>https://joelkitching.com/writing/tailscale-magicdns-nextdns-linux/</link><pubDate>Mon, 12 Jan 2026 00:00:00 +0800</pubDate><guid>https://joelkitching.com/writing/tailscale-magicdns-nextdns-linux/</guid><description>&lt;p&gt;&lt;em&gt;Disclaimer: This post was written by Claude with my direction! We&amp;rsquo;re all in the midst of recalibrating our ethical compass when it comes to programming and writing with LLMs. Since this post is intended as a reference for future me, it felt okay that I was simply a collaborator and editor.&lt;/em&gt;&lt;/p&gt;
+&lt;p&gt;This document describes a robust DNS configuration for Tailscale on Linux that provides:&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;&lt;a href="https://github.com/tailscale/tailscale/issues/7816"&gt;GitHub Issue #7816&lt;/a&gt;&amp;mdash;In &amp;ldquo;direct&amp;rdquo; mode, Tailscale&amp;rsquo;s resolv.conf backup can become polluted with its own address&lt;/li&gt;
-&lt;li&gt;&lt;a href="https://github.com/tailscale/tailscale/issues/4842"&gt;GitHub Issue #4842&lt;/a&gt;&amp;mdash;After network disruptions (WiFi reconnect, router reboot), Tailscale&amp;rsquo;s internal routing can misconfigure to point at itself&lt;/li&gt;
-&lt;li&gt;&lt;a href="https://github.com/tailscale/tailscale/issues/7655"&gt;GitHub Issue #7655&lt;/a&gt;&amp;mdash;Related DNS loop symptoms&lt;/li&gt;
+&lt;li&gt;MagicDNS for tailnet hostname resolution&lt;/li&gt;
+&lt;li&gt;NextDNS for all other queries (with DNS-over-TLS encryption)&lt;/li&gt;
+&lt;li&gt;Resilience to network transitions (suspend/resume, wifi changes)&lt;/li&gt;
+&lt;li&gt;Protection against tailscaled&amp;rsquo;s DNS queue exhaustion&lt;/li&gt;
 &lt;/ul&gt;
-&lt;p&gt;See also: &lt;a href="https://tailscale.com/blog/sisyphean-dns-client-linux"&gt;Tailscale Blog: The Sisyphean Task of DNS Client Config on Linux&lt;/a&gt;&lt;/p&gt;
-&lt;h2 id="the-solution"&gt;The solution&lt;/h2&gt;
-&lt;p&gt;Use NextDNS directly in systemd-resolved, bypass Tailscale&amp;rsquo;s DNS override, and configure split DNS so MagicDNS still works for tailnet hostnames.&lt;/p&gt;
+&lt;h2 id="the-problem-with---accept-dnstrue"&gt;The problem with &lt;code&gt;--accept-dns=true&lt;/code&gt;&lt;/h2&gt;
+&lt;h3 id="how-it-works"&gt;How it works&lt;/h3&gt;
+&lt;p&gt;When &lt;code&gt;accept-dns=true&lt;/code&gt; (the default), tailscaled configures systemd-resolved via D-Bus:&lt;/p&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;SetLinkDNS(tailscale0, [100.100.100.100])
+SetLinkDomains(tailscale0, [&amp;#34;tail4a82f0.ts.net&amp;#34;, &amp;#34;~.&amp;#34;])
+SetLinkDefaultRoute(tailscale0, true)
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;The &lt;code&gt;~.&lt;/code&gt; routing domain means &lt;strong&gt;all&lt;/strong&gt; DNS queries flow through tailscaled:&lt;/p&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;Application → 127.0.0.53 (resolved) → 100.100.100.100 (tailscaled) → NextDNS (DoH)
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id="the-queue-exhaustion-problem"&gt;The queue exhaustion problem&lt;/h3&gt;
+&lt;p&gt;tailscaled has an internal DNS query queue with a hard limit:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-go" data-lang="go"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="kd"&gt;const&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="nx"&gt;maxActiveQueries&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="p"&gt;=&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="mi"&gt;256&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;When this queue is full, tailscaled immediately returns SERVFAIL:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-go" data-lang="go"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;if&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="nx"&gt;n&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="o"&gt;:=&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="nx"&gt;atomic&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;AddInt32&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="nx"&gt;m&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;activeQueriesAtomic&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="nx"&gt;n&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="p"&gt;&amp;gt;&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="nx"&gt;maxActiveQueries&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="p"&gt;{&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="k"&gt;return&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="kc"&gt;nil&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="nx"&gt;errFullQueue&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="c1"&gt;// instant SERVFAIL&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="p"&gt;}&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id="why-network-transitions-trigger-failure"&gt;Why network transitions trigger failure&lt;/h3&gt;
+&lt;p&gt;During suspend/resume or wifi reconnection:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;strong&gt;Network goes down&lt;/strong&gt; &amp;mdash; tailscaled cannot reach upstream DNS (NextDNS via DoH)&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Queries accumulate&lt;/strong&gt; &amp;mdash; applications and system services make DNS requests&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;DoH has slow failure&lt;/strong&gt; &amp;mdash; each query waits for TLS handshake timeout (~5-30 seconds)&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Queue fills&lt;/strong&gt; &amp;mdash; 256 in-flight queries waiting to timeout&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;New queries rejected&lt;/strong&gt; &amp;mdash; instant SERVFAIL responses&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Network recovers&lt;/strong&gt; &amp;mdash; but queue is still full of timing-out queries&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Death spiral&lt;/strong&gt; &amp;mdash; resolved sees instant failures, retries aggressively&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h3 id="why-this-differs-from-normal-dns-server-failure"&gt;Why this differs from normal DNS server failure&lt;/h3&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;Scenario&lt;/th&gt;
+&lt;th&gt;Behavior&lt;/th&gt;
+&lt;th&gt;Result&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;Remote DNS unreachable&lt;/td&gt;
+&lt;td&gt;Slow timeout (5+ sec)&lt;/td&gt;
+&lt;td&gt;Rate-limited retries, fallback works&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;tailscaled queue full&lt;/td&gt;
+&lt;td&gt;Instant SERVFAIL&lt;/td&gt;
+&lt;td&gt;Aggressive retries, no backoff&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;With &lt;code&gt;~.&lt;/code&gt; routing domain, resolved has no fallback&amp;mdash;all queries must go to 100.100.100.100. The combination of instant failure + no fallback = complete DNS outage.&lt;/p&gt;
+&lt;h3 id="evidence-from-logs"&gt;Evidence from logs&lt;/h3&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;Jan 12 20:00:23 tailscaled: monitor: time jumped (probably wake from sleep)
+Jan 12 20:00:27 tailscaled: [RATELIMIT] (48 dropped)
+Jan 12 20:00:27 tailscaled: dns udp query: dial tcp [2a07:a8c0::d6:3326]:443: network is unreachable
+Jan 12 20:00:32 systemd-resolved: Using degraded feature set TCP instead of UDP for DNS server 100.100.100.100
+Jan 12 20:01:19 tailscaled: dns: tcp query: request queue full
+&lt;/code&gt;&lt;/pre&gt;&lt;h2 id="the-problem-with---accept-dnsfalse"&gt;The problem with &lt;code&gt;--accept-dns=false&lt;/code&gt;&lt;/h2&gt;
+&lt;h3 id="expected-behavior"&gt;Expected behavior&lt;/h3&gt;
+&lt;p&gt;With &lt;code&gt;accept-dns=false&lt;/code&gt;, tailscaled should not manage DNS at all, allowing manual split DNS configuration.&lt;/p&gt;
+&lt;h3 id="actual-behavior"&gt;Actual behavior&lt;/h3&gt;
+&lt;p&gt;tailscaled still calls D-Bus methods to configure the tailscale0 interface, but with empty values:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-go" data-lang="go"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;// From resolved.go - setConfigOverDBus is called regardless of accept-dns setting&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="nf"&gt;SetLinkDNS&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nx"&gt;tailscale0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="p"&gt;[])&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="c1"&gt;// clears DNS servers&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="nf"&gt;SetLinkDomains&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nx"&gt;tailscale0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="p"&gt;[])&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="c1"&gt;// clears routing domains&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="nf"&gt;SetLinkDefaultRoute&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nx"&gt;tailscale0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="kc"&gt;true&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="c1"&gt;// sets as default route&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="nf"&gt;SetLinkLLMNR&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nx"&gt;tailscale0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="s"&gt;&amp;#34;no&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="nf"&gt;SetLinkMulticastDNS&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nx"&gt;tailscale0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="s"&gt;&amp;#34;no&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="nf"&gt;FlushCaches&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;This happens on network events like daemon startup, &lt;code&gt;LinkChange&lt;/code&gt; events (network up/down, IP changes), and control plane config updates.&lt;/p&gt;
+&lt;h3 id="impact-on-manual-configuration"&gt;Impact on manual configuration&lt;/h3&gt;
+&lt;p&gt;Any manual split DNS configuration:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-bash" data-lang="bash"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;resolvectl dns tailscale0 100.100.100.100
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;resolvectl domain tailscale0 tail4a82f0.ts.net
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;resolvectl default-route tailscale0 &lt;span class="nb"&gt;false&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Gets overwritten on network events by tailscaled&amp;rsquo;s empty config.&lt;/p&gt;
+&lt;h3 id="evidence-from-logs-1"&gt;Evidence from logs&lt;/h3&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;Jan 16 12:37:55 tailscale-dns.service sets DNS to 100.100.100.100
+Jan 16 12:37:58 tailscaled resets: &amp;#34;Bus client reset DNS server list&amp;#34;
+Jan 16 12:37:58 tailscaled resets: &amp;#34;Bus client set default route setting: yes&amp;#34;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;This behavior is arguably intentional&amp;mdash;tailscaled manages its own interface regardless of whether it&amp;rsquo;s handling DNS for the whole system. But it means we need a workaround to maintain split DNS.&lt;/p&gt;
+&lt;h2 id="understanding-systemd-resolved-dns-routing"&gt;Understanding systemd-resolved DNS routing&lt;/h2&gt;
+&lt;h3 id="dns-server-priority"&gt;DNS server priority&lt;/h3&gt;
+&lt;p&gt;systemd-resolved uses this priority order:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;strong&gt;Per-link with matching routing domain&lt;/strong&gt; &amp;mdash; e.g., tailscale0 with &lt;code&gt;tail4a82f0.ts.net&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Per-link with &lt;code&gt;DefaultRoute=yes&lt;/code&gt;&lt;/strong&gt; &amp;mdash; e.g., &lt;code&gt;wlp0s20f3&lt;/code&gt; from DHCP&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Global DNS&lt;/strong&gt; &amp;mdash; from &lt;code&gt;/etc/systemd/resolved.conf&lt;/code&gt;&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h3 id="the--routing-domain"&gt;The &lt;code&gt;~.&lt;/code&gt; routing domain&lt;/h3&gt;
+&lt;p&gt;A domain prefixed with &lt;code&gt;~&lt;/code&gt; is a routing domain (not search domain):&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;tail4a82f0.ts.net&lt;/code&gt; → search domain, appended to single-label names&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;~tail4a82f0.ts.net&lt;/code&gt; → routing domain, queries for &lt;code&gt;*.tail4a82f0.ts.net&lt;/code&gt; go here&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;~.&lt;/code&gt; → routing domain for root, captures &lt;strong&gt;all&lt;/strong&gt; queries&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id="why-global-dns-is-rarely-used"&gt;Why Global DNS is rarely used&lt;/h3&gt;
+&lt;p&gt;With typical wifi/ethernet connections:&lt;/p&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;wlp0s20f3: DefaultRoute=yes, DNS=192.168.31.1 (from DHCP)
+Global: DNS=45.90.28.0#nextdns (from resolved.conf)
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;The per-link DHCP DNS wins because &lt;code&gt;DefaultRoute=yes&lt;/code&gt; has higher priority than Global. Without intervention, the &lt;code&gt;resolved.conf&lt;/code&gt; NextDNS config is essentially unused.&lt;/p&gt;
+&lt;h2 id="the-dnsovertlsyes-trick"&gt;The &lt;code&gt;DNSOverTLS=yes&lt;/code&gt; trick&lt;/h2&gt;
+&lt;h3 id="how-it-works-1"&gt;How it works&lt;/h3&gt;
+&lt;p&gt;In &lt;code&gt;/etc/systemd/resolved.conf&lt;/code&gt;:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-ini" data-lang="ini"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;[Resolve]&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="na"&gt;DNS&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s"&gt;45.90.28.0#d63326.dns.nextdns.io&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="na"&gt;DNS&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s"&gt;45.90.30.0#d63326.dns.nextdns.io&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="na"&gt;DNSOverTLS&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s"&gt;yes&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;&lt;code&gt;DNSOverTLS=yes&lt;/code&gt; &lt;strong&gt;requires&lt;/strong&gt; DNS-over-TLS for all queries.&lt;/p&gt;
+&lt;h3 id="effect-on-dns-routing"&gt;Effect on DNS routing&lt;/h3&gt;
+&lt;p&gt;When resolved tries to use DHCP-provided DNS (e.g., &lt;code&gt;192.168.31.1&lt;/code&gt;):&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;Attempts DoT connection to &lt;code&gt;192.168.31.1:853&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;Home router doesn&amp;rsquo;t support DoT → connection fails&lt;/li&gt;
+&lt;li&gt;Falls back to Global DNS (NextDNS)&lt;/li&gt;
+&lt;li&gt;NextDNS supports DoT → succeeds&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h3 id="result"&gt;Result&lt;/h3&gt;
+&lt;p&gt;&lt;code&gt;DNSOverTLS=yes&lt;/code&gt; acts as a filter that bypasses all non-DoT DNS servers:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;NextDNS (supports DoT) → &lt;strong&gt;used&lt;/strong&gt;&lt;/li&gt;
+&lt;li&gt;DHCP DNS (no DoT) → bypassed&lt;/li&gt;
+&lt;li&gt;Coffee shop DNS (no DoT) → bypassed&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;This provides consistent NextDNS usage regardless of network, without configuring &lt;code&gt;ignore-auto-dns&lt;/code&gt; on every connection.&lt;/p&gt;
+&lt;h2 id="the-complete-solution"&gt;The complete solution&lt;/h2&gt;
 &lt;h3 id="step-1-configure-nextdns-in-systemd-resolved"&gt;Step 1: Configure NextDNS in systemd-resolved&lt;/h3&gt;
 &lt;p&gt;Edit &lt;code&gt;/etc/systemd/resolved.conf&lt;/code&gt;:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-ini" data-lang="ini"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;[Resolve]&lt;/span&gt;
@@ -38,47 +141,139 @@ dns tcp query: request queue full
 &lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Replace &lt;code&gt;YOUR-CONFIG-ID&lt;/code&gt; with your NextDNS configuration ID (found at &lt;a href="https://my.nextdns.io"&gt;https://my.nextdns.io&lt;/a&gt;).&lt;/p&gt;
 &lt;p&gt;Restart resolved:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-bash" data-lang="bash"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo systemctl restart systemd-resolved
-&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id="step-2-disable-tailscale-dns-override"&gt;Step 2: Disable Tailscale DNS override&lt;/h3&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id="step-2-prevent-networkmanager-from-managing-tailscale0"&gt;Step 2: Prevent NetworkManager from managing tailscale0&lt;/h3&gt;
+&lt;p&gt;Create &lt;code&gt;/etc/NetworkManager/conf.d/99-unmanaged-tailscale.conf&lt;/code&gt;:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-ini" data-lang="ini"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;[keyfile]&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="na"&gt;unmanaged-devices&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s"&gt;interface-name:tailscale*&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id="step-3-disable-tailscale-dns-override"&gt;Step 3: Disable Tailscale DNS override&lt;/h3&gt;
 &lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-bash" data-lang="bash"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo tailscale &lt;span class="nb"&gt;set&lt;/span&gt; --accept-dns&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="nb"&gt;false&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;This prevents Tailscale from taking over global DNS routing.&lt;/p&gt;
-&lt;h3 id="step-3-configure-split-dns-for-magicdns"&gt;Step 3: Configure split DNS for MagicDNS&lt;/h3&gt;
-&lt;p&gt;So you can still resolve tailnet hostnames like &lt;code&gt;mydevice.tail123abc.ts.net&lt;/code&gt;, configure the &lt;code&gt;tailscale0&lt;/code&gt; interface to route &lt;code&gt;.ts.net&lt;/code&gt; queries to Tailscale&amp;rsquo;s DNS. Create a NetworkManager dispatcher script to apply this on every connect:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-bash" data-lang="bash"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo tee /etc/NetworkManager/dispatcher.d/50-tailscale-dns &lt;span class="s"&gt;&amp;lt;&amp;lt; &amp;#39;EOF&amp;#39;
-&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s"&gt;#!/bin/bash
-&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s"&gt;if [ &amp;#34;$1&amp;#34; = &amp;#34;tailscale0&amp;#34; ] &amp;amp;&amp;amp; [ &amp;#34;$2&amp;#34; = &amp;#34;up&amp;#34; ]; then
-&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s"&gt; resolvectl dns tailscale0 100.100.100.100
-&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s"&gt; resolvectl domain tailscale0 tail123abc.ts.net &amp;#39;~tail123abc.ts.net&amp;#39;
-&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s"&gt;fi
-&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s"&gt;EOF&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;This prevents tailscaled from setting the &lt;code&gt;~.&lt;/code&gt; routing domain (which would route all queries through its queue).&lt;/p&gt;
+&lt;h3 id="step-4-create-the-dns-fix-script"&gt;Step 4: Create the DNS fix script&lt;/h3&gt;
+&lt;p&gt;Create &lt;code&gt;/usr/local/bin/tailscale-dns-fix.sh&lt;/code&gt;:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-bash" data-lang="bash"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="cp"&gt;#!/bin/bash
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sleep &lt;span class="m"&gt;2&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;if&lt;/span&gt; ip link show tailscale0 &lt;span class="p"&gt;&amp;amp;&lt;/span&gt;&amp;gt;/dev/null&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="k"&gt;then&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; resolvectl dns tailscale0 100.100.100.100
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; resolvectl domain tailscale0 YOUR-TAILNET.ts.net
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; resolvectl default-route tailscale0 &lt;span class="nb"&gt;false&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; logger -t tailscale-dns-fix &lt;span class="s2"&gt;&amp;#34;Applied MagicDNS config to tailscale0&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;fi&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Replace &lt;code&gt;YOUR-TAILNET.ts.net&lt;/code&gt; with your actual tailnet domain.&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-bash" data-lang="bash"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo chmod +x /usr/local/bin/tailscale-dns-fix.sh
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id="step-5-create-the-watcher-service"&gt;Step 5: Create the watcher service&lt;/h3&gt;
+&lt;p&gt;Create &lt;code&gt;/etc/systemd/system/tailscale-dns-watch.service&lt;/code&gt;:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-ini" data-lang="ini"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;[Unit]&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="na"&gt;Description&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s"&gt;Watch tailscaled DNS changes and apply MagicDNS config&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="na"&gt;After&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s"&gt;tailscaled.service&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="na"&gt;Requires&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s"&gt;tailscaled.service&lt;/span&gt;
 &lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo chmod +x /etc/NetworkManager/dispatcher.d/50-tailscale-dns
-&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Replace &lt;code&gt;tail123abc.ts.net&lt;/code&gt; with your actual tailnet domain. The &lt;code&gt;resolvectl domain&lt;/code&gt; command sets two entries:&lt;/p&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;[Service]&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="na"&gt;Type&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s"&gt;simple&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="na"&gt;ExecStart&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s"&gt;/bin/bash -c &amp;#39;journalctl -u tailscaled -f -n0 --grep=&amp;#34;dns: Set:&amp;#34; | while read line; do /usr/local/bin/tailscale-dns-fix.sh; done&amp;#39;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="na"&gt;Restart&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s"&gt;always&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="na"&gt;RestartSec&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s"&gt;5&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;[Install]&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="na"&gt;WantedBy&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s"&gt;multi-user.target&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Enable and start it:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-bash" data-lang="bash"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo systemctl daemon-reload
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo systemctl &lt;span class="nb"&gt;enable&lt;/span&gt; --now tailscale-dns-watch.service
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;This monitors tailscaled logs and re-applies split DNS whenever tailscaled resets it.&lt;/p&gt;
+&lt;h2 id="how-it-works-2"&gt;How it works&lt;/h2&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt; Application
+│
+▼
+127.0.0.53 (resolved stub)
+│
+┌─────────────┴─────────────┐
+▼ ▼
+*.YOUR-TAILNET.ts.net Everything else
+(routing domain)
+│ │
+▼ ▼
+tailscale0 wlp0s20f3 (DHCP DNS)
+100.100.100.100 192.168.31.1 - NO DoT
+│ │
+▼ ▼ (DoT required, fails)
+MagicDNS Global DNS (NextDNS)
+(tailnet hosts) 45.90.28.0 - DoT works
+&lt;/code&gt;&lt;/pre&gt;&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;Query&lt;/th&gt;
+&lt;th&gt;Route&lt;/th&gt;
+&lt;th&gt;DNS Server&lt;/th&gt;
+&lt;th&gt;Transport&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;mydevice.YOUR-TAILNET.ts.net&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;tailscale0&lt;/td&gt;
+&lt;td&gt;100.100.100.100&lt;/td&gt;
+&lt;td&gt;UDP (local)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;mydevice&lt;/code&gt; (single-label)&lt;/td&gt;
+&lt;td&gt;tailscale0 (search domain)&lt;/td&gt;
+&lt;td&gt;100.100.100.100&lt;/td&gt;
+&lt;td&gt;UDP (local)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;google.com&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;Global (DoT fallback)&lt;/td&gt;
+&lt;td&gt;NextDNS&lt;/td&gt;
+&lt;td&gt;DoT&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;any-website.com&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;Global (DoT fallback)&lt;/td&gt;
+&lt;td&gt;NextDNS&lt;/td&gt;
+&lt;td&gt;DoT&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h2 id="why-this-solution-is-robust"&gt;Why this solution is robust&lt;/h2&gt;
+&lt;p&gt;&lt;strong&gt;Protection against queue exhaustion:&lt;/strong&gt;&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Search domain&lt;/strong&gt; (&lt;code&gt;tail123abc.ts.net&lt;/code&gt;): &lt;code&gt;ping samsung&lt;/code&gt; expands to &lt;code&gt;ping samsung.tail123abc.ts.net&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Routing domain&lt;/strong&gt; (&lt;code&gt;~tail123abc.ts.net&lt;/code&gt;): the &lt;code&gt;~&lt;/code&gt; prefix tells resolved to send queries ending in this domain to Tailscale&lt;/li&gt;
+&lt;li&gt;Regular DNS queries never touch tailscaled&amp;mdash;they go directly to NextDNS via DoT&lt;/li&gt;
+&lt;li&gt;Only tailnet queries (&lt;code&gt;*.YOUR-TAILNET.ts.net&lt;/code&gt;) go through 100.100.100.100&lt;/li&gt;
+&lt;li&gt;Network transitions don&amp;rsquo;t cause queue buildup for regular DNS&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;Automatic recovery:&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;tailscale-dns-watch.service&lt;/code&gt; detects when tailscaled resets DNS config&lt;/li&gt;
+&lt;li&gt;Re-applies split DNS within ~2 seconds&lt;/li&gt;
+&lt;li&gt;Works across tailscaled restarts and network changes&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;Consistent NextDNS usage:&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;DNSOverTLS=yes&lt;/code&gt; bypasses any DHCP-provided DNS&lt;/li&gt;
+&lt;li&gt;Works on any network without per-network configuration&lt;/li&gt;
+&lt;li&gt;Encrypted DNS everywhere&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;MagicDNS functionality preserved:&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Tailnet hostnames resolve via 100.100.100.100&lt;/li&gt;
+&lt;li&gt;Search domain allows &lt;code&gt;ping mydevice&lt;/code&gt; instead of &lt;code&gt;ping mydevice.YOUR-TAILNET.ts.net&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;Split DNS means only tailnet queries have queue risk (minimal traffic)&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h2 id="verification"&gt;Verification&lt;/h2&gt;
 &lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-bash" data-lang="bash"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;# Check resolved config&lt;/span&gt;
 &lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;resolvectl status
 &lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;# Check tailscale0 specifically&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;resolvectl status tailscale0
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
 &lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;# Test NextDNS is working&lt;/span&gt;
 &lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;# Visit https://test.nextdns.io in a browser&lt;/span&gt;
 &lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
 &lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;# Test MagicDNS&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;ping yourdevice.tail123abc.ts.net
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;ping mydevice.YOUR-TAILNET.ts.net
 &lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
 &lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;# Or just the short name (search domain)&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;ping yourdevice
-&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id="how-it-works"&gt;How it works&lt;/h2&gt;
-&lt;p&gt;&lt;code&gt;/etc/resolv.conf&lt;/code&gt; symlinks to systemd-resolved&amp;rsquo;s stub, so all DNS queries go through resolved.&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;Resolving &lt;code&gt;samsung&lt;/code&gt;:&lt;/strong&gt;&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;samsung&lt;/code&gt; → 127.0.0.53 (resolved) → append search domain → &lt;code&gt;samsung.tail123abc.ts.net&lt;/code&gt; → routing domain match → 100.100.100.100 (Tailscale) → &lt;code&gt;100.x.y.z&lt;/code&gt;&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;Resolving &lt;code&gt;samsung.tail123abc.ts.net&lt;/code&gt;:&lt;/strong&gt;&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;samsung.tail123abc.ts.net&lt;/code&gt; → 127.0.0.53 (resolved) → routing domain match → 100.100.100.100 (Tailscale) → &lt;code&gt;100.x.y.z&lt;/code&gt;&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;Resolving &lt;code&gt;google.com&lt;/code&gt;:&lt;/strong&gt;&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;google.com&lt;/code&gt; → 127.0.0.53 (resolved) → no routing domain match → NextDNS via DoT → &lt;code&gt;142.250.x.x&lt;/code&gt;&lt;/p&gt;
-&lt;p&gt;Since &lt;code&gt;--accept-dns=false&lt;/code&gt; prevents Tailscale from registering as the global handler, there&amp;rsquo;s no path for 100.100.100.100 to end up in the upstream list&amp;mdash;no loop.&lt;/p&gt;
-&lt;h2 id="quick-reference"&gt;Quick reference&lt;/h2&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;ping mydevice
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id="quick-reference"&gt;Quick reference&lt;/h2&gt;
 &lt;table&gt;
 &lt;thead&gt;
 &lt;tr&gt;
@@ -92,23 +287,42 @@ dns tcp query: request queue full
 &lt;td&gt;&lt;code&gt;resolvectl status&lt;/code&gt;&lt;/td&gt;
 &lt;/tr&gt;
 &lt;tr&gt;
-&lt;td&gt;Test specific DNS server&lt;/td&gt;
-&lt;td&gt;&lt;code&gt;dig @100.100.100.100 hostname&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;Check tailscale0 DNS config&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;resolvectl status tailscale0&lt;/code&gt;&lt;/td&gt;
 &lt;/tr&gt;
 &lt;tr&gt;
-&lt;td&gt;Temporarily change DNS&lt;/td&gt;
-&lt;td&gt;&lt;code&gt;sudo resolvectl dns wlan0 8.8.8.8&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;Test specific DNS server&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;dig @100.100.100.100 hostname&lt;/code&gt;&lt;/td&gt;
 &lt;/tr&gt;
 &lt;tr&gt;
 &lt;td&gt;Restart resolved&lt;/td&gt;
 &lt;td&gt;&lt;code&gt;sudo systemctl restart systemd-resolved&lt;/code&gt;&lt;/td&gt;
 &lt;/tr&gt;
 &lt;tr&gt;
+&lt;td&gt;Check watcher service&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;sudo systemctl status tailscale-dns-watch&lt;/code&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Manually re-apply DNS fix&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;sudo /usr/local/bin/tailscale-dns-fix.sh&lt;/code&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
 &lt;td&gt;Check tailscale DNS mode&lt;/td&gt;
 &lt;td&gt;&lt;code&gt;tailscale debug prefs | grep -i dns&lt;/code&gt;&lt;/td&gt;
 &lt;/tr&gt;
 &lt;/tbody&gt;
-&lt;/table&gt;</description></item><item><title>Arch Linux: inhibiting sleep triggered by lid switch</title><link>https://joelkitching.com/writing/arch-linux-inhibit-lid-switch-sleep/</link><pubDate>Sat, 10 Jan 2026 00:00:00 +0800</pubDate><guid>https://joelkitching.com/writing/arch-linux-inhibit-lid-switch-sleep/</guid><description>&lt;p&gt;Sometimes I want to run long jobs overnight on my laptop, or even charge my phone while the laptop is closed in my backpack (getting USB to have power when suspended is another longstanding problem).&lt;/p&gt;
+&lt;/table&gt;
+&lt;h2 id="known-limitations"&gt;Known limitations&lt;/h2&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;strong&gt;2-second window after tailscaled changes&lt;/strong&gt; &amp;mdash; brief period where MagicDNS may not work&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Relies on log monitoring&lt;/strong&gt; &amp;mdash; if journald is unavailable, watcher won&amp;rsquo;t trigger&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Workaround for tailscaled behavior&lt;/strong&gt; &amp;mdash; ideally &lt;code&gt;accept-dns=false&lt;/code&gt; would leave tailscale0&amp;rsquo;s resolved config alone&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2 id="see-also"&gt;See also&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href="https://tailscale.com/kb/1188/linux-dns"&gt;Tailscale: Linux DNS&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="https://tailscale.com/blog/sisyphean-dns-client-linux"&gt;Tailscale Blog: The Sisyphean Task of DNS Client Config on Linux&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;</description></item><item><title>Arch Linux: inhibiting sleep triggered by lid switch</title><link>https://joelkitching.com/writing/arch-linux-inhibit-lid-switch-sleep/</link><pubDate>Sat, 10 Jan 2026 00:00:00 +0800</pubDate><guid>https://joelkitching.com/writing/arch-linux-inhibit-lid-switch-sleep/</guid><description>&lt;p&gt;Sometimes I want to run long jobs overnight on my laptop, or even charge my phone while the laptop is closed in my backpack (getting USB to have power when suspended is another longstanding problem).&lt;/p&gt;
 &lt;p&gt;For quite a while, I tried different variations of &lt;code&gt;gnome-session-inhibit&lt;/code&gt; and &lt;code&gt;systemd-inhibit&lt;/code&gt;. But they never worked properly!&lt;/p&gt;
 &lt;p&gt;Finally, I found this gem on the Arch Linux forum: &lt;a href="https://bbs.archlinux.org/viewtopic.php?id=216236"&gt;Systemd-inhibit doesn&amp;rsquo;t prevent sleep&lt;/a&gt;&lt;/p&gt;
 &lt;blockquote&gt;
