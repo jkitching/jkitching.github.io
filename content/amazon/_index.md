@@ -1,5 +1,4 @@
 ---
-layout: amazon
 title: "Amazon internship blog"
 date: 2011-04-30
 ---
